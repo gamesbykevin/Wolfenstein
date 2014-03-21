@@ -43,7 +43,7 @@ public final class Input
         bi = new BufferedImage(textureWidth, textureHeight, BufferedImage.TYPE_INT_RGB);
         
         final int startX = 0;
-        final int startY = 0;
+        final int startY = 64;
         
         //write image to buffered image
         bi.getGraphics().drawImage(image, 0, 0, textureWidth, textureHeight, startX, startY, startX + width, startY + height, null);
@@ -184,8 +184,8 @@ public final class Input
         z += za;
         
         //determine which block the player is at for collision detection
-        int xLoc = (int)((x + (xa*1.75)) / 8);
-        int zLoc = (int)((z + (za*1.75)) / 8);
+        int xLoc = (int)((x + (xa*1.25)) / 16);
+        int zLoc = (int)((z + (za*1.25)) / 16);
         
         //do we have collision
         if (hasCollision(engine.getManager().screen.display3d.level, xLoc, zLoc))

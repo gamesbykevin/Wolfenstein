@@ -22,7 +22,7 @@ public class Level
             {
                 final Block block;
                 
-                if (random.nextInt(100) == 0)
+                if (random.nextInt(25) == 0)
                 {
                     block = new SolidBlock();
                 }

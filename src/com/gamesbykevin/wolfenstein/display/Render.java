@@ -19,6 +19,7 @@ public class Render
         {
             int yPixel = y + yOffset;
             
+            //make sure we are still in bounds
             if (yPixel < 0 || yPixel >= height)
                 continue;
             
@@ -26,6 +27,7 @@ public class Render
             {
                 int xPixel = x + xOffset;
                 
+                //make sure we are still in bounds
                 if (xPixel < 0 || xPixel >= width)
                     continue;
                 
@@ -33,7 +35,9 @@ public class Render
                 
                 //this is so we don't render transparent pixels
                 if (alpha > 0)
+                {
                     this.pixels[xPixel + yPixel * width] = alpha;
+                }
             }
         }
     }
