@@ -22,7 +22,7 @@ public class Level
             {
                 final Block block;
                 
-                if (random.nextInt(4) == 0)
+                if (random.nextInt(100) == 0)
                 {
                     block = new SolidBlock();
                 }
@@ -34,6 +34,11 @@ public class Level
                 blocks[x + y * width] = block;
             }
         }
+    }
+    
+    public Block create(final double x, final double y)
+    {
+        return create((int)x, (int)y);
     }
     
     public Block create(final int x, final int y)

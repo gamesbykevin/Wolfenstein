@@ -4,7 +4,7 @@ import com.gamesbykevin.wolfenstein.hero.Input;
 
 public final class Screen extends Render
 {
-    private Display3D display3d;
+    public Display3D display3d;
     
     public Screen(final int width, final int height, final Input input)
     {
@@ -22,7 +22,7 @@ public final class Screen extends Render
         
         int xBlock = 2, zBlock = 5; 
         
-        display3d.renderFloor();
+        display3d.renderTopBottom();
         
         //display3d.renderWall(xBlock + 1, xBlock + 1, zBlock, zBlock + 1, 0);
         //display3d.renderWall(xBlock + 1, xBlock, zBlock + 1, zBlock + 1, 0);
@@ -36,7 +36,8 @@ public final class Screen extends Render
         display3d.renderWall(xBlock, xBlock + 1, zBlock + 1, zBlock + 1, 0.5);
         */
         
-        display3d.renderSprite(xBlock + 3, 0, zBlock + 3, 1);
+        display3d.renderSprite(xBlock + 3, 0, zBlock + 3, 0.5);
+        
         //display3d.renderWall(0, 8, 10, 10, 0);
         //display3d.renderSprite(2, 3, 7);
         /*
@@ -51,6 +52,8 @@ public final class Screen extends Render
         display3d.renderWall(3.5, 3.5, 4, 4.5, 0);
         * */
         
+        //display3d.renderWall(3, 3, 8, 0, 0.5);
+        //display3d.renderWall(3, 3, 2, 0, 0);
         
         display3d.renderDistanceLimiter();
         draw(display3d, 0, 0);

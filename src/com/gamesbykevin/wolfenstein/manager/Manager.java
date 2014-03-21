@@ -29,7 +29,7 @@ public final class Manager implements IManager
     private Rectangle window;
     
     //where the pixels are located to render the image
-    private Screen screen;
+    public Screen screen;
     private BufferedImage image;
     private int[] pixels;
     

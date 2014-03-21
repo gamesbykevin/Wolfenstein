@@ -16,21 +16,21 @@ public final class Shared
      * These dimensions is the size of the game window the user will see.
      * NOTE: If these dimensions do not match the original then the mouse input will be off.
      */
-    public static final int INITIAL_WIDTH  = 800;
-    public static final int INITIAL_HEIGHT = 600;
+    public static final int INITIAL_WIDTH  = 600;
+    public static final int INITIAL_HEIGHT = 400;
     
     //the game is originally programmed for these dimensions
-    public static final int ORIGINAL_WIDTH  = 800;
-    public static final int ORIGINAL_HEIGHT = 600;
+    public static final int ORIGINAL_WIDTH  = 600;
+    public static final int ORIGINAL_HEIGHT = 400;
     
     //show UPS/FPS counters
     public static final boolean DEBUG = true;
     
-    //do we hide mouse when the menu is not visible and actual gameplay started
+    //do we hide mouse when the menu is not visible and actual gameplay has started
     public static boolean HIDE_MOUSE = true;
     
     //how many updates per second, controls speed of game
-    public static final int DEFAULT_UPS = 30;
+    public static final int DEFAULT_UPS = 60;
     
     //what is the name of our game
     public static final String GAME_NAME = "Wolfenstein";
