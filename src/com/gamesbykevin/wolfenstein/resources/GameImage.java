@@ -20,7 +20,14 @@ public final class GameImage extends ImageManager
      */
     public enum Keys
     {
-        Mouse, MouseDrag, TextureImage
+        Mouse, MouseDrag, WallTextureImage, 
+        HeroesWeapons,
+        LevelObjects,
+        Soldier1, Soldier2, Soldier3, 
+        Captain1, Captain2, Captain3, Captain4, 
+        Dog, 
+        Boss1, Boss2,
+        BonusItems
     }
     
     public GameImage() throws Exception

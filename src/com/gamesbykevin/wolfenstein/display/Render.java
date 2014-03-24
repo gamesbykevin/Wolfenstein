@@ -34,7 +34,7 @@ public class Render
                 final int alpha = display.pixels[x + y * display.width];
                 
                 //this is so we don't render transparent pixels
-                if (alpha > 0)
+                if (alpha >= 0)
                 {
                     this.pixels[xPixel + yPixel * width] = alpha;
                 }

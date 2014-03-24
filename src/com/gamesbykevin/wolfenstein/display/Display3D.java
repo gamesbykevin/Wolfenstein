@@ -3,6 +3,9 @@ package com.gamesbykevin.wolfenstein.display;
 import com.gamesbykevin.wolfenstein.hero.Input;
 import com.gamesbykevin.wolfenstein.level.*;
 
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
+
 public class Display3D extends Render
 {
     //our array that stores the depth of the pixels so we can apply opacity etc..
@@ -16,6 +19,10 @@ public class Display3D extends Render
     
     //render pixels within a certain depth
     private final double depthLimit = 200.0;
+    
+    //the height of the ceiling and floor
+    private final double floorPosition  = 8;
+    private final double ceilingPostion = 8;
     
     private Input input;
     
@@ -40,15 +47,6 @@ public class Display3D extends Render
      */
     public void renderTopBottom()
     {
-        //set our buffer to 0
-        for (int x=0; x < width; x++)
-        {
-            this.zBufferWall[x] = 0;
-        }
-        
-        final double floorPosition  = 8;
-        final double ceilingPostion = 8;
-        
         forward  = input.z;   //negative value would move backward
         right    = input.x;   //negative value would move left
         walking = 0;
@@ -57,12 +55,18 @@ public class Display3D extends Render
         //our depth
         double z;
         
+        //are we dealing with the floor
+        boolean floor;
+        
         final double rotation = input.rotation;
+        
         cosine = Math.cos(rotation);
         sine = Math.sin(rotation);
         
         for (int y=0; y < height; y++)
         {
+            floor = true;
+            
             double ceiling = (y - height / 2.0) / height;
             
             walking = Math.sin(input.count / 6.0) * 0.8;
@@ -82,7 +86,12 @@ public class Display3D extends Render
             }
             
             if (ceiling < 0)
+            {
                 z = (ceilingPostion - up - walking) / -ceiling;
+                
+                //this is part of the ceiling
+                floor = false;
+            }
             
             for (int x=0; x < width; x++)
             {
@@ -95,9 +104,9 @@ public class Display3D extends Render
                 int xPix = (int)(xx + right);
                 int yPix = (int)(yy + forward);
                 
-                zBuffer[x + y * width] = z;
-                
                 final int index = x + y * width;
+                
+                zBuffer[index] = z;
                 
                 //only render pixels certain depth
                 if (z > depthLimit)
@@ -106,7 +115,16 @@ public class Display3D extends Render
                 }
                 else
                 {
-                    pixels[index] = input.temp.pixels[(xPix & (input.bi.getWidth()-1)) + (yPix & (input.bi.getWidth()-1)) * input.bi.getWidth()];
+                    if (floor)
+                    {
+                        //render floor
+                        pixels[index] = input.temp.pixels[(xPix & (input.bi.getWidth()-1)) + (yPix & (input.bi.getWidth()-1)) * input.bi.getWidth()];
+                    }
+                    else
+                    {
+                        //render ceiling
+                        pixels[index] = input.temp.pixels[(xPix & (input.bi.getWidth()-1)) + (yPix & (input.bi.getWidth()-1)) * input.bi.getWidth()];
+                    }
                 }
             }
         }
@@ -117,6 +135,12 @@ public class Display3D extends Render
      */
     public void renderWalls()
     {
+        //reset our buffer to 0
+        for (int x=0; x < zBufferWall.length; x++)
+        {
+            this.zBufferWall[x] = 0;
+        }
+        
         for (int xBlock = -1; xBlock <= level.blocks.length; xBlock++)
         {
             for (int zBlock = -1; zBlock <= level.blocks.length; zBlock++)
@@ -164,70 +188,86 @@ public class Display3D extends Render
         }
     }
     
-    public void renderSprite(final double x, final double y, final double z, final double heightOffset)
+    public void renderSprite(final double x, final double y, final double z, final double heightOffset, final BufferedImage bi)
     {
+        //adjustment variables
         final double upCorrect = -0.125;
         final double rightCorrect = 0.0625;
         final double forwardCorrect = 0.0625;
         final double walkCorrect = 0.0625;
         
-        double xc = ((x / 2) - (right * rightCorrect)) * 2;
-        double yc = ((y / 2) - (up * upCorrect)) * 2 + (walking * walkCorrect) * 2 + heightOffset;
-        double zc = ((z / 2) - (forward * forwardCorrect)) * 2;
+        //add adjustment variables in perspective to our hero
+        double xc = (x - (right * rightCorrect)) * 2;
+        double yc = (y - (up * upCorrect)) + (walking * walkCorrect) * 2 + heightOffset;
+        double zc = (z - (forward * forwardCorrect)) * 2;
         
         double rotX = xc * cosine - zc * sine;
         double rotY = yc;
         double rotZ = zc * cosine + xc * sine;
         
+        //locate the center of our window
         double xCenter = width / 2.0;
         double yCenter = height / 2.0;
         
+        //locate where the sprite is to the center
         double xPixel = rotX / rotZ  * height + xCenter;
         double yPixel = rotY / rotZ  * height + yCenter;
         
-        //number is the dimension
-        double xPixelL = xPixel - input.bi.getWidth() / rotZ;
-        double xPixelR = xPixel + input.bi.getWidth() / rotZ;
+        //scale so the sprite will be bigger
+        final double scale = 6.0;
         
-        //number is the dimension
-        double yPixelL = yPixel - input.bi.getWidth() / rotZ;
-        double yPixelR = yPixel + input.bi.getWidth() / rotZ;
+        //the left and right x pixels, manipulate these to increase the width of the sprite
+        double xPixelL = xPixel - (bi.getWidth() * scale) / rotZ;
+        double xPixelR = xPixel + (bi.getWidth() * scale) / rotZ;
         
+        //the top and bottom y pixels manipulate these to increase the height of the sprite
+        double yPixelU = yPixel - (bi.getHeight() * scale) / rotZ;
+        double yPixelD = yPixel + (bi.getHeight() * scale) / rotZ;
+        
+        //convert to int
         int xpl = (int)xPixelL;
         int xpr = (int)xPixelR;
-        int ypl = (int)yPixelL;
-        int ypr = (int)yPixelR;
+        int ypu = (int)yPixelU;
+        int ypd = (int)yPixelD;
         
+        //make sure we are within window boundary
         if (xpl < 0)
             xpl = 0;
         if (xpr > width)
             xpr = width;
-        if (ypl < 0)
-            ypl = 0;
-        if (ypr > height)
-            ypr = height;
+        if (ypu < 0)
+            ypu = 0;
+        if (ypd > height)
+            ypd = height;
         
         rotZ *= 8;
         
-        for (int yp = ypl; yp < ypr; yp++)
+        //fill in sprite pixels to our destination
+        for (int yp = ypu; yp < ypd; yp++)
         {
-            double pixelRotationY = (yp - yPixelR) / (yPixelL - yPixelR);
-            int yTexture = (int)(pixelRotationY * input.bi.getWidth());
+            double pixelRotationY = (yp - yPixelU) / (yPixelD - yPixelU);
+            int yTexture = (int)(pixelRotationY * bi.getHeight());
             
             for (int xp = xpl; xp < xpr; xp++)
             {
-                double pixelRotationX = (xp - xPixelR) / (xPixelL - xPixelR);
-                int xTexture = (int)(pixelRotationX * input.bi.getWidth());
+                double pixelRotationX = (xp - xPixelL) / (xPixelR - xPixelL);
+                int xTexture = (int)(pixelRotationX * bi.getWidth());
                 
-                if (zBuffer[xp + yp * width] > rotZ)
+                final int index = xp + yp * width;
+                
+                if (zBuffer[index] > rotZ)
                 {
-                    int color = input.temp.pixels[(xTexture & (input.bi.getWidth()-1)) + (yTexture & (input.bi.getWidth()-1)) * input.bi.getWidth()];
+                    //get the pixel array data from the image
+                    int[] tmpPixels = ((DataBufferInt)bi.getRaster().getDataBuffer()).getData();
+                    
+                    //get the color of a specific pixel
+                    int color = tmpPixels[(xTexture & (bi.getWidth()-1)) + (yTexture & (bi.getHeight()-1)) * bi.getWidth()];
                     
                     //don't render transparent pixels
-                    if (color != 0xffff00ff)
+                    if (color != 0xffff00ff && color != 0)
                     {
-                        pixels[xp + yp * width] = color;
-                        zBuffer[xp + yp * width] = rotZ;
+                        pixels[index] = color;
+                        zBuffer[index] = rotZ;
                     }
                 }
             }
@@ -397,13 +437,15 @@ public class Display3D extends Render
     }
     
     /**
-     * This will make the color in the distance fade out
+     * This will apply shadow to objects that are farther away
      */
     public void renderDistanceLimiter()
     {
-        for (int i=0; i < width * height; i++)
+        for (int i=0; i < pixels.length; i++)
         {
             int color = pixels[i];
+            
+            //the zBuffer contains the depth of objects which will help us determine the brightness
             int brightness = (int)(renderBrightnessDistance / zBuffer[i]);
             
             if (brightness < 0)

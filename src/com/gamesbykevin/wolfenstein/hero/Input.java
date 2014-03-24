@@ -28,6 +28,34 @@ public final class Input
     
     public int count = 0;
     
+    /**
+     * Here is all of our input options
+     */
+    private enum InputOptions
+    {
+        WalkForward(KeyEvent.VK_UP),
+        WalkBackward(KeyEvent.VK_DOWN),
+        StrafeLeft(KeyEvent.VK_A),
+        StrafeRight(KeyEvent.VK_D),
+        TurnLeft(KeyEvent.VK_LEFT),
+        TurnRight(KeyEvent.VK_RIGHT),
+        Crouch(KeyEvent.VK_Z),
+        Jump(KeyEvent.VK_SPACE),
+        Run(KeyEvent.VK_X);
+        
+        private final int key;
+        
+        private InputOptions(final int key)
+        {
+            this.key = key;
+        }
+        
+        private int getKey()
+        {
+            return this.key;
+        }
+    }
+    
     public Input(final Image image) throws Exception
     {
         final int width = 64;
@@ -63,69 +91,24 @@ public final class Input
         
         Keyboard keyboard = engine.getKeyboard();
         
-        if (keyboard.hasKeyReleased(KeyEvent.VK_RIGHT))
+        for (InputOptions inputOption : InputOptions.values())
         {
-            keyboard.removeKeyPressed(KeyEvent.VK_RIGHT);
-            keyboard.removeKeyReleased(KeyEvent.VK_RIGHT);
+            if (keyboard.hasKeyReleased(inputOption.getKey()))
+            {
+                keyboard.removeKeyPressed(inputOption.getKey());
+                keyboard.removeKeyReleased(inputOption.getKey());
+            }
         }
         
-        if (keyboard.hasKeyReleased(KeyEvent.VK_LEFT))
-        {
-            keyboard.removeKeyPressed(KeyEvent.VK_LEFT);
-            keyboard.removeKeyReleased(KeyEvent.VK_LEFT);
-        }
-        
-        if (keyboard.hasKeyReleased(KeyEvent.VK_UP))
-        {
-            keyboard.removeKeyPressed(KeyEvent.VK_UP);
-            keyboard.removeKeyReleased(KeyEvent.VK_UP);
-        }
-        
-        if (keyboard.hasKeyReleased(KeyEvent.VK_DOWN))
-        {
-            keyboard.removeKeyPressed(KeyEvent.VK_DOWN);
-            keyboard.removeKeyReleased(KeyEvent.VK_DOWN);
-        }
-        
-        if (keyboard.hasKeyReleased(KeyEvent.VK_A))
-        {
-            keyboard.removeKeyPressed(KeyEvent.VK_A);
-            keyboard.removeKeyReleased(KeyEvent.VK_A);
-        }
-        
-        if (keyboard.hasKeyReleased(KeyEvent.VK_D))
-        {
-            keyboard.removeKeyPressed(KeyEvent.VK_D);
-            keyboard.removeKeyReleased(KeyEvent.VK_D);
-        }
-        
-        if (keyboard.hasKeyReleased(KeyEvent.VK_SPACE))
-        {
-            keyboard.removeKeyPressed(KeyEvent.VK_SPACE);
-            keyboard.removeKeyReleased(KeyEvent.VK_SPACE);
-        }
-        
-        if (keyboard.hasKeyReleased(KeyEvent.VK_Z))
-        {
-            keyboard.removeKeyPressed(KeyEvent.VK_Z);
-            keyboard.removeKeyReleased(KeyEvent.VK_Z);
-        }
-        
-        if (keyboard.hasKeyReleased(KeyEvent.VK_X))
-        {
-            keyboard.removeKeyPressed(KeyEvent.VK_X);
-            keyboard.removeKeyReleased(KeyEvent.VK_X);
-        }
-        
-        boolean right = keyboard.hasKeyPressed(KeyEvent.VK_RIGHT);
-        boolean left = keyboard.hasKeyPressed(KeyEvent.VK_LEFT);
-        boolean up = keyboard.hasKeyPressed(KeyEvent.VK_UP);
-        boolean down = keyboard.hasKeyPressed(KeyEvent.VK_DOWN);
-        boolean turnLeft = keyboard.hasKeyPressed(KeyEvent.VK_A);
-        boolean turnRight = keyboard.hasKeyPressed(KeyEvent.VK_D);
-        boolean jump = keyboard.hasKeyPressed(KeyEvent.VK_SPACE);
-        boolean crouch = keyboard.hasKeyPressed(KeyEvent.VK_Z);
-        boolean run = keyboard.hasKeyPressed(KeyEvent.VK_X);
+        boolean right = keyboard.hasKeyPressed(InputOptions.StrafeRight.getKey());
+        boolean left = keyboard.hasKeyPressed(InputOptions.StrafeLeft.getKey());
+        boolean up = keyboard.hasKeyPressed(InputOptions.WalkForward.getKey());
+        boolean down = keyboard.hasKeyPressed(InputOptions.WalkBackward.getKey());
+        boolean turnLeft = keyboard.hasKeyPressed(InputOptions.TurnLeft.getKey());
+        boolean turnRight = keyboard.hasKeyPressed(InputOptions.TurnRight.getKey());
+        boolean jump = keyboard.hasKeyPressed(InputOptions.Jump.getKey());
+        boolean crouch = keyboard.hasKeyPressed(InputOptions.Crouch.getKey());
+        boolean run = keyboard.hasKeyPressed(InputOptions.Run.getKey());
         
         walking = false;
         
@@ -173,7 +156,7 @@ public final class Input
         
         if (run)
         {
-            walkSpeed = 3;
+            walkSpeed = 2.5;
             runWalk = true;
         }
         
@@ -184,8 +167,8 @@ public final class Input
         z += za;
         
         //determine which block the player is at for collision detection
-        int xLoc = (int)((x + (xa*1.25)) / 16);
-        int zLoc = (int)((z + (za*1.25)) / 16);
+        int xLoc = (int)((x + (xa*1.75)) / 16);
+        int zLoc = (int)((z + (za*1.75)) / 16);
         
         //do we have collision
         if (hasCollision(engine.getManager().screen.display3d.level, xLoc, zLoc))

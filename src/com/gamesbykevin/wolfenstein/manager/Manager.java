@@ -46,10 +46,13 @@ public final class Manager implements IManager
         //calculate the game window where game play will occur
         this.window = new Rectangle(engine.getMain().getScreen());
         
-        this.input = new Input(engine.getResources().getGameImage(GameImage.Keys.TextureImage));
+        this.input = new Input(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage));
         
+        //write image to buffered image
+        BufferedImage temp = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
+        temp.getGraphics().drawImage(engine.getResources().getGameImage(GameImage.Keys.Soldier1), 0, 0, 64, 64, 0, 0, 64, 64, null);
         //create new canvas
-        this.screen = new Screen(window.width, window.height, input);
+        this.screen = new Screen(window.width, window.height, input, temp);
         
         //create new buffered image
         this.image = new BufferedImage(window.width, window.height, BufferedImage.TYPE_INT_RGB);
@@ -119,6 +122,6 @@ public final class Manager implements IManager
         
         graphics.drawImage(image, 0, 0, window.width, window.height, null);
         
-        graphics.drawImage(input.bi, 0, 0, null);
+        //graphics.drawImage(screen.spriteImage, 0, 0, null);
     }
 }
