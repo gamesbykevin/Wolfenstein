@@ -6,7 +6,7 @@ import com.gamesbykevin.wolfenstein.level.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
-public class Display3D extends Render
+public class Render3D extends Render
 {
     //our array that stores the depth of the pixels so we can apply opacity etc..
     private double[] zBuffer;
@@ -24,62 +24,90 @@ public class Display3D extends Render
     private final double floorPosition  = 8;
     private final double ceilingPostion = 8;
     
-    private Input input;
-    
-    private double forward, right, up, walking, cosine, sine;
-    
     public Level level;
     
-    public Display3D(final int width, final int height, final Input input)
+    //store hero input variables because all 3d objects will be rendered around the hero
+    private double forward, right, up, walking, sine, cosine, rotation;
+    private int count;
+    private boolean isWalking, isRunning;
+    
+    /**
+     * 
+     * @param width Width of the entire window
+     * @param height Height of the entire window
+     */
+    public Render3D(final int width, final int height)
     {
         super(width, height);
         
         this.zBuffer = new double[width * height];
         this.zBufferWall = new double[width];
         
-        this.input = input;
-        
         this.level = new Level(10, 10);
     }
     
     /**
-     * Render the floor and ceiling
+     * Set the heroes current location etc..
+     * @param input Hero input object
      */
-    public void renderTopBottom()
+    public void update(final Input input)
     {
-        forward  = input.z;   //negative value would move backward
-        right    = input.x;   //negative value would move left
-        walking = 0;
-        up = Math.sin(input.y / 10) * 2;
+        //negative value would move backward
+        forward  = input.getZ();   
         
-        //our depth
+        //negative value would move left
+        right    = input.getX();   
+        
+        //set to 0 at first
+        walking = 0;
+        
+        //height, negative value would move down
+        up = Math.sin(input.getY() / 10) * 2;
+        
+        //the direction the hero is facing
+        rotation = input.getRotation();
+        sine = Math.sin(rotation);
+        cosine = Math.cos(rotation);
+        
+        //this is constantly changing for animation purposes
+        count = input.getCount();
+        
+        isWalking = input.isWalking();
+        isRunning = input.isRunning();
+    }
+    
+    /**
+     * Render the floor and ceiling. Both are included in this method for optimization purposes.
+     * @param input Our hero input object because everything is drawn in relation to where the hero is.
+     * @param floorTexture Floor Image
+     * @param ceilingTexture Ceiling Image
+     */
+    public void renderTopBottom(final Texture floorTexture, final Texture ceilingTexture)
+    {
+        //our depth for each floor/ceiling piece
         double z;
         
         //are we dealing with the floor
         boolean floor;
         
-        final double rotation = input.rotation;
-        
-        cosine = Math.cos(rotation);
-        sine = Math.sin(rotation);
-        
-        for (int y=0; y < height; y++)
+        for (int y=0; y < getHeight(); y++)
         {
+            //at first assume we are rendering the floor
             floor = true;
             
-            double ceiling = (y - height / 2.0) / height;
+            double ceiling = (y - getHeight() / 2.0) / getHeight();
             
-            walking = Math.sin(input.count / 6.0) * 0.8;
+            walking = Math.sin(count / 6.0) * 0.8;
             
             z = (floorPosition + up + walking) / ceiling;
             
-            if (input.runWalk)
+            if (isRunning)
             {
-                walking = Math.sin(input.count / 6.0) * 2;
+                walking = Math.sin(count / 6.0) * 2;
                 z = (floorPosition + up + walking) / ceiling;
             }
             
-            if (!input.walking)
+            if (!isWalking)
             {
                 walking = 0;
                 z = (floorPosition + up + walking) / ceiling;
@@ -93,9 +121,9 @@ public class Display3D extends Render
                 floor = false;
             }
             
-            for (int x=0; x < width; x++)
+            for (int x=0; x < getWidth(); x++)
             {
-                double depth = (x - width / 2.0) / height;
+                double depth = (x - getWidth() / 2.0) / getHeight();
                 depth *= z;
                 
                 double xx = depth * cosine + z * sine;
@@ -104,26 +132,26 @@ public class Display3D extends Render
                 int xPix = (int)(xx + right);
                 int yPix = (int)(yy + forward);
                 
-                final int index = x + y * width;
+                final int index = x + y * getWidth();
                 
                 zBuffer[index] = z;
                 
                 //only render pixels certain depth
                 if (z > depthLimit)
                 {
-                    pixels[index] = 0;
+                    getPixels()[index] = 0;
                 }
                 else
                 {
                     if (floor)
                     {
                         //render floor
-                        pixels[index] = input.temp.pixels[(xPix & (input.bi.getWidth()-1)) + (yPix & (input.bi.getWidth()-1)) * input.bi.getWidth()];
+                        getPixels()[index] = floorTexture.getPixels()[(xPix & (floorTexture.getWidth() - 1)) + (yPix & (floorTexture.getWidth()-1)) * floorTexture.getWidth()];
                     }
                     else
                     {
                         //render ceiling
-                        pixels[index] = input.temp.pixels[(xPix & (input.bi.getWidth()-1)) + (yPix & (input.bi.getWidth()-1)) * input.bi.getWidth()];
+                        getPixels()[index] = ceilingTexture.getPixels()[(xPix & (ceilingTexture.getWidth()-1)) + (yPix & (ceilingTexture.getWidth()-1)) * ceilingTexture.getWidth()];
                     }
                 }
             }
@@ -133,7 +161,7 @@ public class Display3D extends Render
     /**
      * Draw our walls
      */
-    public void renderWalls()
+    public void renderWalls(final Texture wallTexture)
     {
         //reset our buffer to 0
         for (int x=0; x < zBufferWall.length; x++)
@@ -156,39 +184,27 @@ public class Display3D extends Render
                 {
                     //draw west wall
                     if (!east.solid)
-                    {
-                        //renderWall(xBlock + extra, xBlock + extra, zBlock, zBlock + extra, 0);
-                        renderWall(xBlock + extra, xBlock + extra, zBlock, zBlock + extra, 0.5);
-                    }
+                        renderWall(xBlock + extra, xBlock + extra, zBlock, zBlock + extra, 0.5, wallTexture);
                     
                     //draw north wall
                     if (!south.solid)
-                    {
-                        //renderWall(xBlock + extra, xBlock, zBlock + extra, zBlock + extra, 0);
-                        renderWall(xBlock + extra, xBlock, zBlock + extra, zBlock + extra, 0.5);
-                    }
+                        renderWall(xBlock + extra, xBlock, zBlock + extra, zBlock + extra, 0.5, wallTexture);
                 }
                 else
                 {
                     //draw east wall
                     if (east.solid)
-                    {
-                        //renderWall(xBlock + extra, xBlock + extra, zBlock + extra, zBlock, 0);
-                        renderWall(xBlock + extra, xBlock + extra, zBlock + extra, zBlock, 0.5);
-                    }
+                        renderWall(xBlock + extra, xBlock + extra, zBlock + extra, zBlock, 0.5, wallTexture);
                     
                     //draw south wall
                     if (south.solid)
-                    {
-                        //renderWall(xBlock, xBlock + extra, zBlock + extra, zBlock + extra, 0);
-                        renderWall(xBlock, xBlock + extra, zBlock + extra, zBlock + extra, 0.5);
-                    }
+                        renderWall(xBlock, xBlock + extra, zBlock + extra, zBlock + extra, 0.5, wallTexture);
                 }
             }
         }
     }
     
-    public void renderSprite(final double x, final double y, final double z, final double heightOffset, final BufferedImage bi)
+    public void renderSprite(final double x, final double y, final double z, final double heightOffset, final int[] tmpPixels, final int imageWidth, final int imageHeight)
     {
         //adjustment variables
         final double upCorrect = -0.125;
@@ -206,23 +222,23 @@ public class Display3D extends Render
         double rotZ = zc * cosine + xc * sine;
         
         //locate the center of our window
-        double xCenter = width / 2.0;
-        double yCenter = height / 2.0;
+        double xCenter = getWidth() / 2.0;
+        double yCenter = getHeight() / 2.0;
         
         //locate where the sprite is to the center
-        double xPixel = rotX / rotZ  * height + xCenter;
-        double yPixel = rotY / rotZ  * height + yCenter;
+        double xPixel = rotX / rotZ  * getHeight() + xCenter;
+        double yPixel = rotY / rotZ  * getHeight() + yCenter;
         
         //scale so the sprite will be bigger
         final double scale = 6.0;
         
         //the left and right x pixels, manipulate these to increase the width of the sprite
-        double xPixelL = xPixel - (bi.getWidth() * scale) / rotZ;
-        double xPixelR = xPixel + (bi.getWidth() * scale) / rotZ;
+        double xPixelL = xPixel - (imageWidth * scale) / rotZ;
+        double xPixelR = xPixel + (imageWidth * scale) / rotZ;
         
         //the top and bottom y pixels manipulate these to increase the height of the sprite
-        double yPixelU = yPixel - (bi.getHeight() * scale) / rotZ;
-        double yPixelD = yPixel + (bi.getHeight() * scale) / rotZ;
+        double yPixelU = yPixel - (imageHeight * scale) / rotZ;
+        double yPixelD = yPixel + (imageHeight * scale) / rotZ;
         
         //convert to int
         int xpl = (int)xPixelL;
@@ -233,12 +249,12 @@ public class Display3D extends Render
         //make sure we are within window boundary
         if (xpl < 0)
             xpl = 0;
-        if (xpr > width)
-            xpr = width;
+        if (xpr > getWidth())
+            xpr = getWidth();
         if (ypu < 0)
             ypu = 0;
-        if (ypd > height)
-            ypd = height;
+        if (ypd > getHeight())
+            ypd = getHeight();
         
         rotZ *= 8;
         
@@ -246,27 +262,24 @@ public class Display3D extends Render
         for (int yp = ypu; yp < ypd; yp++)
         {
             double pixelRotationY = (yp - yPixelU) / (yPixelD - yPixelU);
-            int yTexture = (int)(pixelRotationY * bi.getHeight());
+            int yTexture = (int)(pixelRotationY * imageHeight);
             
             for (int xp = xpl; xp < xpr; xp++)
             {
                 double pixelRotationX = (xp - xPixelL) / (xPixelR - xPixelL);
-                int xTexture = (int)(pixelRotationX * bi.getWidth());
+                int xTexture = (int)(pixelRotationX * imageWidth);
                 
-                final int index = xp + yp * width;
+                final int index = xp + yp * getWidth();
                 
                 if (zBuffer[index] > rotZ)
                 {
-                    //get the pixel array data from the image
-                    int[] tmpPixels = ((DataBufferInt)bi.getRaster().getDataBuffer()).getData();
-                    
                     //get the color of a specific pixel
-                    int color = tmpPixels[(xTexture & (bi.getWidth()-1)) + (yTexture & (bi.getHeight()-1)) * bi.getWidth()];
+                    int color = tmpPixels[(xTexture & (imageWidth-1)) + (yTexture & (imageHeight-1)) * imageWidth];
                     
                     //don't render transparent pixels
-                    if (color != 0xffff00ff && color != 0)
+                    if (color != 0xffff00ff && color != 0 && color != -16777216)
                     {
-                        pixels[index] = color;
+                        getPixels()[index] = color;
                         zBuffer[index] = rotZ;
                     }
                 }
@@ -282,15 +295,13 @@ public class Display3D extends Render
      * @param zDistanceRight depth of right side
      * @param yHeight The height where the image will be drawn
      */
-    public void renderWall(final double xLeft, final double xRight, final double zDistanceLeft, final double zDistanceRight, final double yHeight)
+    public void renderWall(final double xLeft, final double xRight, final double zDistanceLeft, final double zDistanceRight, final double yHeight, final Texture wallTexture)
     {
         final double upCorrect = 0.0625;
         final double rightCorrect = 0.0625;
         final double forwardCorrect = 0.0625;
         final double walkCorrect = -0.0625;
         
-        //double xcLeft = ((xLeft / 2) - (right * rightCorrect)) * 2;
-        //double zcLeft = ((zDistanceLeft / 2) - (forward * forwardCorrect)) * 2;
         double xcLeft = (xLeft - (right * rightCorrect)) * 2;
         double zcLeft = (zDistanceLeft - (forward * forwardCorrect)) * 2;
         
@@ -302,8 +313,6 @@ public class Display3D extends Render
         
         double rotLeftSideZ = zcLeft * cosine + xcLeft * sine;
         
-        //double xcRight = ((xRight / 2) - (right * rightCorrect)) * 2;
-        //double zcRight = ((zDistanceRight / 2) - (forward * forwardCorrect)) * 2;
         double xcRight = (xRight - (right * rightCorrect)) * 2;
         double zcRight = (zDistanceRight - (forward * forwardCorrect)) * 2;
         
@@ -316,7 +325,7 @@ public class Display3D extends Render
         double rotRightSideZ = zcRight * cosine + xcRight * sine;
         
         double tex30 = 0;
-        double tex40 = input.bi.getWidth();
+        double tex40 = wallTexture.getWidth();
         final double clip = 1.75;
         
         //if both sides are going to be clipped don't bother rendering the wall
@@ -342,8 +351,8 @@ public class Display3D extends Render
         }
         
         //calculate all corner x pixels of this wall texture, left side will have the same 2 xPixelLeft and same for the 2 xPixelRight
-        double xPixelLeft  = (rotLeftSideX  / rotLeftSideZ  * height + width / 2);
-        double xPixelRight = (rotRightSideX / rotRightSideZ * height + width / 2);
+        double xPixelLeft  = (rotLeftSideX  / rotLeftSideZ  * getHeight() + getWidth() / 2);
+        double xPixelRight = (rotRightSideX / rotRightSideZ * getHeight() + getWidth() / 2);
         
         //don't draw
         if (xPixelLeft >= xPixelRight)
@@ -355,14 +364,14 @@ public class Display3D extends Render
         if (xPixelLeftInt < 0)
             xPixelLeftInt = 0;
         
-        if (xPixelRightInt > width)
-            xPixelRightInt = width;
+        if (xPixelRightInt > getWidth())
+            xPixelRightInt = getWidth();
         
         //calculate all 4 corner y pixels of this wall texture
-        double yPixelLeftTop =      ((yCornerTL / rotLeftSideZ  * height) + (height / 2.0));
-        double yPixelLeftBottom =   ((yCornerBL / rotLeftSideZ  * height) + (height / 2.0));
-        double yPixelRightTop =     ((yCornerTR / rotRightSideZ * height) + (height / 2.0));
-        double yPixelRightBottom =  ((yCornerBR / rotRightSideZ * height) + (height / 2.0));
+        double yPixelLeftTop =      ((yCornerTL / rotLeftSideZ  * getHeight()) + (getHeight() / 2.0));
+        double yPixelLeftBottom =   ((yCornerBL / rotLeftSideZ  * getHeight()) + (getHeight() / 2.0));
+        double yPixelRightTop =     ((yCornerTR / rotRightSideZ * getHeight()) + (getHeight() / 2.0));
+        double yPixelRightBottom =  ((yCornerBR / rotRightSideZ * getHeight()) + (getHeight() / 2.0));
         
         double tex1 = 1 / rotLeftSideZ;
         double tex2 = 1 / rotRightSideZ;
@@ -401,8 +410,8 @@ public class Display3D extends Render
                 yPixelTopInt = 0;
             
             //make sure pixel is within window dimension
-            if (yPixelBottomInt > height)
-                yPixelBottomInt = height;
+            if (yPixelBottomInt > getHeight())
+                yPixelBottomInt = getHeight();
             
             //render every y pixel from the top to the bottom
             for (int y = yPixelTopInt; y < yPixelBottomInt; y++)
@@ -411,39 +420,37 @@ public class Display3D extends Render
                 double pixelRotationY = (y - yPixelTop) / (yPixelBottom - yPixelTop);
                 
                 //for locating the pixel in the image pixel array
-                int yTexture = (int)(input.bi.getWidth() * pixelRotationY);
+                int yTexture = (int)(wallTexture.getWidth() * pixelRotationY);
                 
                 //make sure the index is in boounds
-                if (x >= 0 && x <= width && y >=0 && y <= height)
+                if (x >= 0 && x <= getWidth() && y >=0 && y <= getHeight())
                 {
                     //store zBuffer value to help determine pixel brightness (opacity)
-                    zBuffer[x + y * width] = 1 / (tex1 + (tex2 - tex1) * pixelRotation) * 8;
+                    zBuffer[x + y * getWidth()] = 1 / (tex1 + (tex2 - tex1) * pixelRotation) * 8;
                     
                     //if the depth is farther than our limit don't render
-                    if (zBuffer[x + y * width] > depthLimit)
+                    if (zBuffer[x + y * getWidth()] > depthLimit)
                     {
-                        pixels[x + y * width] = 0;
+                        getPixels()[x + y * getWidth()] = 0;
                     }
                     else
                     {
                         //take the pixel from our image and store in pixel array
-                        pixels[x + y * width] = input.temp.pixels[(xTexture & (input.bi.getWidth()-1)) + (yTexture & (input.bi.getWidth()-1)) * input.bi.getWidth()];
+                        getPixels()[x + y * getWidth()] = wallTexture.getPixels()[(xTexture & (wallTexture.getWidth()-1)) + (yTexture & (wallTexture.getWidth()-1)) * wallTexture.getWidth()];
                     }
-
-                    //pixels[x + y * width] = input.temp.pixels[(xTexture & 30) + input.bi.getWidth() + (yTexture & 30) * input.bi.getWidth()];
                 }
             }
         }
     }
     
     /**
-     * This will apply shadow to objects that are farther away
+     * This will apply different level of brightness depending on our depth
      */
     public void renderDistanceLimiter()
     {
-        for (int i=0; i < pixels.length; i++)
+        for (int i=0; i < getPixels().length; i++)
         {
-            int color = pixels[i];
+            int color = getPixels()[i];
             
             //the zBuffer contains the depth of objects which will help us determine the brightness
             int brightness = (int)(renderBrightnessDistance / zBuffer[i]);
@@ -461,7 +468,7 @@ public class Display3D extends Render
             g = g * brightness / 255;
             b = b * brightness / 255;
             
-            pixels[i] = r << 16 | g << 8 | b;
+            getPixels()[i] = r << 16 | g << 8 | b;
         }
     }
 }

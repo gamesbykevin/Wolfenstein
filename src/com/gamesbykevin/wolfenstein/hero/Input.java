@@ -1,5 +1,6 @@
 package com.gamesbykevin.wolfenstein.hero;
 
+import com.gamesbykevin.framework.base.Sprite;
 import com.gamesbykevin.framework.input.Keyboard;
 
 import com.gamesbykevin.wolfenstein.display.Render;
@@ -11,22 +12,17 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.awt.event.KeyEvent;
 
-public final class Input
+public final class Input extends Sprite
 {
-    public double xa, x = 40, za, z = 40, y, rotation, rotationa;
+    //location of player
+    private double xa, za, rotation, rotationa;
     
     //store the xs and zs when we don't have collision
-    public double xs = x, zs = z;
+    private double xs = getX(), zs = getZ();
     
-    public Render temp;
+    private boolean walking = false, running = false;
     
-    public BufferedImage bi;
-    
-    public boolean walking = false;
-
-    public boolean runWalk = false;
-    
-    public int count = 0;
+    private int count = 0;
     
     /**
      * Here is all of our input options
@@ -56,31 +52,12 @@ public final class Input
         }
     }
     
-    public Input(final Image image) throws Exception
+    protected Input()
     {
-        final int width = 64;
-        final int height = 64;
         
-        //make it a multiple of 8 to render correctly
-        final int textureWidth = 64;
-        final int textureHeight = 64;
-        
-        temp = new Render(textureWidth, textureHeight);
-        
-        //create new buffered image
-        bi = new BufferedImage(textureWidth, textureHeight, BufferedImage.TYPE_INT_RGB);
-        
-        final int startX = 0;
-        final int startY = 64;
-        
-        //write image to buffered image
-        bi.getGraphics().drawImage(image, 0, 0, textureWidth, textureHeight, startX, startY, startX + width, startY + height, null);
-        
-        //copy array data to temp pixels
-        bi.getRGB(0, 0, textureWidth, textureHeight, temp.pixels, 0, textureWidth);
     }
     
-    public void update(final Engine engine)
+    public void update(final Keyboard keyboard)
     {
         double xMove = 0;
         double zMove = 0;
@@ -88,8 +65,6 @@ public final class Input
         double jumpHeight = 1;
         double crouchHeight = 2;
         double walkSpeed = 1;
-        
-        Keyboard keyboard = engine.getKeyboard();
         
         for (InputOptions inputOption : InputOptions.values())
         {
@@ -124,6 +99,7 @@ public final class Input
             walking = true;
         }
         
+        //this is to simulate the heroes head moving up and down while walking
         if (up || down)
             count++;
         
@@ -141,37 +117,40 @@ public final class Input
         
         if (jump)
         {
-            y += jumpHeight;
+            setY(getY() + jumpHeight);
             run = false;
         }
         
         if (crouch)
         {
-            y -= crouchHeight;
+            setY(getY() - crouchHeight);
             run = false;
             walkSpeed = 0.5;
         }
         
-        runWalk = false;
+        running = false;
         
+        //if we are running increase walkSpeed
         if (run)
         {
             walkSpeed = 2.5;
-            runWalk = true;
+            running = true;
         }
         
         xa += (xMove * Math.cos(rotation) + zMove * Math.sin(rotation)) * walkSpeed;
         za += (zMove * Math.cos(rotation) - xMove * Math.sin(rotation)) * walkSpeed;
         
-        x += xa;
-        z += za;
+        //place at new location
+        setX(getX() + xa);
+        setZ(getZ() + za);
         
         //determine which block the player is at for collision detection
-        int xLoc = (int)((x + (xa*1.75)) / 16);
-        int zLoc = (int)((z + (za*1.75)) / 16);
+        int xLoc = (int)((getX() + (xa*1.75)) / 16);
+        int zLoc = (int)((getZ() + (za*1.75)) / 16);
         
         //do we have collision
-        if (hasCollision(engine.getManager().screen.display3d.level, xLoc, zLoc))
+        /*
+        if (hasCollision(engine.getManager().screen.render3d.level, xLoc, zLoc))
         {
             //restore safe location
             x = xs;
@@ -183,16 +162,39 @@ public final class Input
             xs = x;
             zs = z;
         }
+        */
         
         xa *= 0.1;
         za *= 0.1;
         
-        y *= 0.9;
+        setY(getY() * .9);
         
         rotation += rotationa;
         rotationa *= 0.5;
-        
-        //System.out.println("xLoc = " + xLoc + ", zLoc = " + zLoc);
+    }
+    
+    public double getRotation()
+    {
+        return rotation;
+    }
+    
+    public boolean isRunning()
+    {
+        return running;
+    }
+    
+    public boolean isWalking()
+    {
+        return walking;
+    }
+    
+    /**
+     * Get the current count so we can apply animation
+     * @return the current count
+     */
+    public int getCount()
+    {
+        return count;
     }
     
     /**

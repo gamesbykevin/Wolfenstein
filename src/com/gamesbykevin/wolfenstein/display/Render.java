@@ -1,44 +1,53 @@
 package com.gamesbykevin.wolfenstein.display;
 
-public class Render 
+import com.gamesbykevin.framework.resources.Disposable;
+
+import java.awt.Dimension;
+
+public abstract class Render implements Disposable
 {
-    public final int width;
-    public final int height;
-    public final int[] pixels;
+    //dimensions of our image
+    private Dimension dimension;
+    
+    //image pixel data
+    private int[] pixels;
     
     public Render(final int width, final int height)
     {
-        this.width = width;
-        this.height = height;
+        //create our dimension
+        this.dimension = new Dimension(width, height);
+        
+        //create our pixel data array
         this.pixels = new int[width * height];
     }
     
-    public void draw(final Render display, final int xOffset, final int yOffset)
+    /**
+     * Clean up resources
+     */
+    @Override
+    public void dispose()
     {
-        for (int y=0; y < display.height; y++)
-        {
-            int yPixel = y + yOffset;
-            
-            //make sure we are still in bounds
-            if (yPixel < 0 || yPixel >= height)
-                continue;
-            
-            for (int x=0; x < display.width; x++)
-            {
-                int xPixel = x + xOffset;
-                
-                //make sure we are still in bounds
-                if (xPixel < 0 || xPixel >= width)
-                    continue;
-                
-                final int alpha = display.pixels[x + y * display.width];
-                
-                //this is so we don't render transparent pixels
-                if (alpha >= 0)
-                {
-                    this.pixels[xPixel + yPixel * width] = alpha;
-                }
-            }
-        }
+        dimension = null;
+        pixels = null;
+    }
+    
+    public int getWidth()
+    {
+        return dimension.width;
+    }
+    
+    public int getHeight()
+    {
+        return dimension.height;
+    }
+    
+    protected void setPixels(final int[] pixels)
+    {
+        this.pixels = pixels;
+    }
+    
+    public int[] getPixels()
+    {
+        return pixels;
     }
 }

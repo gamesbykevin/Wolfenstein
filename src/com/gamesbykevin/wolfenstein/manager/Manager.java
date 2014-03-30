@@ -1,11 +1,13 @@
 package com.gamesbykevin.wolfenstein.manager;
 
-import com.gamesbykevin.wolfenstein.display.Screen;
+import com.gamesbykevin.wolfenstein.display.Screen3D;
 import com.gamesbykevin.framework.menu.Menu;
 import com.gamesbykevin.framework.util.*;
 
+import com.gamesbykevin.wolfenstein.enemies.*;
 import com.gamesbykevin.wolfenstein.engine.Engine;
-import com.gamesbykevin.wolfenstein.hero.Input;
+import com.gamesbykevin.wolfenstein.hero.Hero;
+import com.gamesbykevin.wolfenstein.display.Texture;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu.LayerKey;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu.OptionKey;
@@ -28,13 +30,15 @@ public final class Manager implements IManager
     //the area where gameplay will occur
     private Rectangle window;
     
-    //where the pixels are located to render the image
-    public Screen screen;
-    private BufferedImage image;
-    private int[] pixels;
+    //this screen will render our 3d objects
+    public Screen3D screen;
     
-    //handle input
-    private Input input;
+    //our player in the game
+    private Hero player;
+    
+    private Texture wall, floor, ceiling;
+    
+    private Enemy soldier;
     
     /**
      * Constructor for Manager, this is the point where we load any menu option configurations
@@ -46,19 +50,33 @@ public final class Manager implements IManager
         //calculate the game window where game play will occur
         this.window = new Rectangle(engine.getMain().getScreen());
         
-        this.input = new Input(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage));
+        this.player = new Hero();
+        this.player.setLocation(80, 80);
+               
+        //create new texture and set pixel data array
+        this.wall = new Texture();
+        this.wall.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 0, 0);
+        
+        //create new texture and set pixel data array
+        this.floor = new Texture();
+        this.floor.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 4, 3);
+        
+        //create new texture and set pixel data array
+        this.ceiling = new Texture();
+        this.ceiling.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 0, 7);
+        
+        //this.sprite = new Texture(engine.getResources().getGameImage(GameImage.Keys.Soldier1), 0, 0);
+        
+        this.soldier = new Soldier1();
+        this.soldier.setImage(engine.getResources().getGameImage(GameImage.Keys.Soldier1));
         
         //write image to buffered image
-        BufferedImage temp = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
-        temp.getGraphics().drawImage(engine.getResources().getGameImage(GameImage.Keys.Soldier1), 0, 0, 64, 64, 0, 0, 64, 64, null);
+        //BufferedImage temp = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
+        //temp.getGraphics().drawImage(engine.getResources().getGameImage(GameImage.Keys.Soldier1), 0, 0, 64, 64, 0, 0, 64, 64, null);
+        
         //create new canvas
-        this.screen = new Screen(window.width, window.height, input, temp);
+        this.screen = new Screen3D(window.width, window.height);
         
-        //create new buffered image
-        this.image = new BufferedImage(window.width, window.height, BufferedImage.TYPE_INT_RGB);
-        
-        //store the pixel data to our int[] array
-        this.pixels = ((DataBufferInt)this.image.getRaster().getDataBuffer()).getData();
         
         
         //BufferStrategy bs = 
@@ -85,6 +103,11 @@ public final class Manager implements IManager
         return this.window;
     }
     
+    public Hero getPlayer()
+    {
+        return player;
+    }
+    
     /**
      * Free up resources
      */
@@ -103,7 +126,14 @@ public final class Manager implements IManager
     @Override
     public void update(final Engine engine) throws Exception
     {
-        input.update(engine);
+        //update our player object
+        player.update(engine);
+        
+        //update soldier animation
+        soldier.update(engine.getMain().getTime());
+        
+        //write our 3d screen objects etc.. to pixel array
+        screen.renderPixelData(engine, wall, floor, ceiling, soldier);
     }
     
     /**
@@ -113,14 +143,7 @@ public final class Manager implements IManager
     @Override
     public void render(final Graphics graphics)
     {
-        screen.render();
-        
-        for (int i=0; i < window.width * window.height; i++)
-        {
-            this.pixels[i] = this.screen.pixels[i];
-        }
-        
-        graphics.drawImage(image, 0, 0, window.width, window.height, null);
+        graphics.drawImage(screen.getImage(), 0, 0, window.width, window.height, null);
         
         //graphics.drawImage(screen.spriteImage, 0, 0, null);
     }
