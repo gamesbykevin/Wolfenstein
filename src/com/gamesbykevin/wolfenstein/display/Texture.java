@@ -19,6 +19,13 @@ public final class Texture extends Render
      * @param col The column where the wall texture resides
      * @param row The row where the wall texture resides
      */
+    public Texture(final Image image, final int col, final int row)
+    {
+        this();
+        
+        update(image, col, row);
+    }
+    
     public Texture()
     {
         super(WIDTH, HEIGHT);
@@ -33,7 +40,7 @@ public final class Texture extends Render
      * @param col The column location
      * @param row The row location
      */
-    public void update(final Image image, final int col, final int row)
+    private void update(final Image image, final int col, final int row)
     {
         //find the x,y where our wall texture starts
         final int startX = (col * WIDTH);

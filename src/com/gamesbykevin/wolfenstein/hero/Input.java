@@ -2,6 +2,7 @@ package com.gamesbykevin.wolfenstein.hero;
 
 import com.gamesbykevin.framework.base.Sprite;
 import com.gamesbykevin.framework.input.Keyboard;
+import com.gamesbykevin.framework.labyrinth.Location;
 
 import com.gamesbykevin.wolfenstein.display.Render;
 import com.gamesbykevin.wolfenstein.engine.Engine;
@@ -23,6 +24,18 @@ public final class Input extends Sprite
     private boolean walking = false, running = false;
     
     private int count = 0;
+    
+    //the speed the player moves while crouching
+    private final double speedCrouch = 0.5;
+    
+    //the speed the player moves while running
+    private final double speedRun    = 2.5;
+    
+    //the speed the player moves while walking
+    private final double speedWalk   = 1;
+    
+    //how fast can the player turn
+    private final double rotationSpeed = 0.055;
     
     /**
      * Here is all of our input options
@@ -57,14 +70,13 @@ public final class Input extends Sprite
         
     }
     
-    public void update(final Keyboard keyboard)
+    public void update(final Keyboard keyboard, final Level level) throws Exception
     {
         double xMove = 0;
         double zMove = 0;
-        double rotationSpeed = 0.055;
         double jumpHeight = 1;
         double crouchHeight = 2;
-        double walkSpeed = 1;
+        double speed = speedWalk;
         
         for (InputOptions inputOption : InputOptions.values())
         {
@@ -82,7 +94,7 @@ public final class Input extends Sprite
         boolean turnLeft = keyboard.hasKeyPressed(InputOptions.TurnLeft.getKey());
         boolean turnRight = keyboard.hasKeyPressed(InputOptions.TurnRight.getKey());
         boolean jump = keyboard.hasKeyPressed(InputOptions.Jump.getKey());
-        boolean crouch = keyboard.hasKeyPressed(InputOptions.Crouch.getKey());
+        //boolean crouch = keyboard.hasKeyPressed(InputOptions.Crouch.getKey());
         boolean run = keyboard.hasKeyPressed(InputOptions.Run.getKey());
         
         walking = false;
@@ -100,8 +112,8 @@ public final class Input extends Sprite
         }
         
         //this is to simulate the heroes head moving up and down while walking
-        if (up || down)
-            count++;
+        //if (up || down)
+        //    count++;
         
         if (left)
             xMove--;
@@ -121,48 +133,62 @@ public final class Input extends Sprite
             run = false;
         }
         
+        /*
+        //this is to crouch the player
         if (crouch)
         {
             setY(getY() - crouchHeight);
             run = false;
-            walkSpeed = 0.5;
+            speed = speedCrouch;
         }
+        */
         
         running = false;
         
         //if we are running increase walkSpeed
         if (run)
         {
-            walkSpeed = 2.5;
+            speed = speedRun;
             running = true;
         }
         
-        xa += (xMove * Math.cos(rotation) + zMove * Math.sin(rotation)) * walkSpeed;
-        za += (zMove * Math.cos(rotation) - xMove * Math.sin(rotation)) * walkSpeed;
+        //calculate the additional space moved
+        xa += (xMove * Math.cos(rotation) + zMove * Math.sin(rotation)) * speed;
+        za += (zMove * Math.cos(rotation) - xMove * Math.sin(rotation)) * speed;
         
-        //place at new location
-        setX(getX() + xa);
-        setZ(getZ() + za);
+        //predict where the player will be next
+        int newX = (int)((getX() + xa) / 16);
+        int newZ = (int)((getZ() + za) / 16);
         
-        //determine which block the player is at for collision detection
-        int xLoc = (int)((getX() + (xa*1.75)) / 16);
-        int zLoc = (int)((getZ() + (za*1.75)) / 16);
+        //where the player is currently
+        int originalX = (int)(getX() / 16);
+        int originalZ = (int)(getZ() / 16);
         
-        //do we have collision
-        /*
-        if (hasCollision(engine.getManager().screen.render3d.level, xLoc, zLoc))
+        //just check if x collision has occurred
+        final boolean xCollision = hasCollision(level, newX, originalZ);
+        
+        //just check if z collision has occurred
+        final boolean zCollision = hasCollision(level, originalX, newZ);
+        
+        if (!xCollision)
         {
-            //restore safe location
-            x = xs;
-            z = zs;
+            setX(getX() + xa);
+            xs = getX();
         }
         else
         {
-            //store safe location
-            xs = x;
-            zs = z;
+            setX(xs);
         }
-        */
+        
+        if (!zCollision)
+        {
+            setZ(getZ() + za);
+            zs = getZ();
+        }
+        else
+        {
+            setZ(zs);
+        }
         
         xa *= 0.1;
         za *= 0.1;
@@ -204,38 +230,38 @@ public final class Input extends Sprite
      * @param zLoc z location
      * @return true if we hit a wall, false otherwise
      */
-    private boolean hasCollision(final Level level, final int xLoc, final int zLoc)
+    private boolean hasCollision(final Level level, final int xLoc, final int zLoc) throws Exception
     {
-        final double extra = 1;
+        final int extra = 1;
         
         //block to the east
-        Block e = level.create(xLoc+extra, zLoc);
+        Block e = level.get(xLoc+extra, zLoc);
         
         //block to the west
-        Block w = level.create(xLoc-extra, zLoc);
+        Block w = level.get(xLoc-extra, zLoc);
         
         //block to the north
-        Block n = level.create(xLoc, zLoc-extra);
+        Block n = level.get(xLoc, zLoc-extra);
         
         //block to the south
-        Block s = level.create(xLoc, zLoc+extra);
+        Block s = level.get(xLoc, zLoc+extra);
         
         //block to the north east
-        Block ne = level.create(xLoc+extra, zLoc-extra);
+        Block ne = level.get(xLoc+extra, zLoc-extra);
         
         //block to the north west
-        Block nw = level.create(xLoc-extra, zLoc-extra);
+        Block nw = level.get(xLoc-extra, zLoc-extra);
         
         //block to the south east
-        Block se = level.create(xLoc+extra, zLoc+extra);
+        Block se = level.get(xLoc+extra, zLoc+extra);
         
         //block to the south west
-        Block sw = level.create(xLoc-extra, zLoc+extra);
+        Block sw = level.get(xLoc-extra, zLoc+extra);
         
         //center
-        Block c = level.create(xLoc, zLoc);
+        Block c = level.get(xLoc, zLoc);
         
         //if any of the blocks are solid we have collision
-        return (e.solid || w.solid || n.solid || s.solid || c.solid || ne.solid || nw.solid || se.solid || sw.solid);
+        return (e.solid || w.solid || n.solid || s.solid || c.solid || ne.solid || nw.solid || se.solid || sw.solid);    
     }
 }

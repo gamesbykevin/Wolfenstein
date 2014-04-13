@@ -8,6 +8,7 @@ import com.gamesbykevin.wolfenstein.enemies.*;
 import com.gamesbykevin.wolfenstein.engine.Engine;
 import com.gamesbykevin.wolfenstein.hero.Hero;
 import com.gamesbykevin.wolfenstein.display.Texture;
+import com.gamesbykevin.wolfenstein.display.Textures;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu.LayerKey;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu.OptionKey;
@@ -36,9 +37,11 @@ public final class Manager implements IManager
     //our player in the game
     private Hero player;
     
-    private Texture wall, floor, ceiling;
+    //private Texture wall, floor, ceiling;
     
     private Enemy soldier;
+    
+    private Textures textures;
     
     /**
      * Constructor for Manager, this is the point where we load any menu option configurations
@@ -51,28 +54,26 @@ public final class Manager implements IManager
         this.window = new Rectangle(engine.getMain().getScreen());
         
         this.player = new Hero();
-        this.player.setLocation(80, 80);
+        this.player.setLocation(40, 40);
                
-        //create new texture and set pixel data array
-        this.wall = new Texture();
-        this.wall.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 0, 0);
+        this.textures = new Textures(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage));
         
         //create new texture and set pixel data array
-        this.floor = new Texture();
-        this.floor.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 4, 3);
+        //this.wall = new Texture();
+        //this.wall.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 0, 0);
         
         //create new texture and set pixel data array
-        this.ceiling = new Texture();
-        this.ceiling.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 0, 7);
+        //this.floor = new Texture();
+        //this.floor.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 4, 3);
+        
+        //create new texture and set pixel data array
+        //this.ceiling = new Texture();
+        //this.ceiling.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 0, 7);
         
         //this.sprite = new Texture(engine.getResources().getGameImage(GameImage.Keys.Soldier1), 0, 0);
         
         this.soldier = new Soldier1();
         this.soldier.setImage(engine.getResources().getGameImage(GameImage.Keys.Soldier1));
-        
-        //write image to buffered image
-        //BufferedImage temp = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
-        //temp.getGraphics().drawImage(engine.getResources().getGameImage(GameImage.Keys.Soldier1), 0, 0, 64, 64, 0, 0, 64, 64, null);
         
         //create new canvas
         this.screen = new Screen3D(window.width, window.height);
@@ -133,7 +134,7 @@ public final class Manager implements IManager
         soldier.update(engine.getMain().getTime());
         
         //write our 3d screen objects etc.. to pixel array
-        screen.renderPixelData(engine, wall, floor, ceiling, soldier);
+        screen.renderPixelData(engine, textures, soldier);
     }
     
     /**

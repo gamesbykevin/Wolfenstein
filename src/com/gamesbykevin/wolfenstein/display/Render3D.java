@@ -3,9 +3,6 @@ package com.gamesbykevin.wolfenstein.display;
 import com.gamesbykevin.wolfenstein.hero.Input;
 import com.gamesbykevin.wolfenstein.level.*;
 
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
-
 public class Render3D extends Render
 {
     //our array that stores the depth of the pixels so we can apply opacity etc..
@@ -24,6 +21,12 @@ public class Render3D extends Render
     private final double floorPosition  = 8;
     private final double ceilingPostion = 8;
     
+    //the number of blocks the object needs to be within in order to be rendered
+    private final int renderRange = 25;
+    
+    //temporary texture object
+    private Texture tmpTexture;
+    
     public Level level;
     
     //store hero input variables because all 3d objects will be rendered around the hero
@@ -32,18 +35,18 @@ public class Render3D extends Render
     private boolean isWalking, isRunning;
     
     /**
-     * 
+     * Create our object that is responsible for rendering all 3d objects
      * @param width Width of the entire window
      * @param height Height of the entire window
      */
-    public Render3D(final int width, final int height)
+    public Render3D(final int width, final int height) throws Exception
     {
         super(width, height);
         
         this.zBuffer = new double[width * height];
         this.zBufferWall = new double[width];
         
-        this.level = new Level(10, 10);
+        this.level = new Level(5, 5, 7, 7);
     }
     
     /**
@@ -53,10 +56,10 @@ public class Render3D extends Render
     public void update(final Input input)
     {
         //negative value would move backward
-        forward  = input.getZ();   
+        forward  = input.getZ();
         
         //negative value would move left
-        right    = input.getX();   
+        right    = input.getX();
         
         //set to 0 at first
         walking = 0;
@@ -77,12 +80,11 @@ public class Render3D extends Render
     }
     
     /**
-     * Render the floor and ceiling. Both are included in this method for optimization purposes.
-     * @param input Our hero input object because everything is drawn in relation to where the hero is.
-     * @param floorTexture Floor Image
-     * @param ceilingTexture Ceiling Image
+     * Render the floor and ceiling.<br> 
+     * We do both here for optimization purposes.
+     * @param textures Collection of textures.
      */
-    public void renderTopBottom(final Texture floorTexture, final Texture ceilingTexture)
+    public void renderTopBottom(final Textures textures)
     {
         //our depth for each floor/ceiling piece
         double z;
@@ -145,13 +147,17 @@ public class Render3D extends Render
                 {
                     if (floor)
                     {
+                        tmpTexture = textures.getTexture(Textures.Key.FloorWood);
+                        
                         //render floor
-                        getPixels()[index] = floorTexture.getPixels()[(xPix & (floorTexture.getWidth() - 1)) + (yPix & (floorTexture.getWidth()-1)) * floorTexture.getWidth()];
+                        getPixels()[index] = tmpTexture.getPixels()[(xPix & (tmpTexture.getWidth() - 1)) + (yPix & (tmpTexture.getWidth()-1)) * tmpTexture.getWidth()];
                     }
                     else
                     {
+                        tmpTexture = textures.getTexture(Textures.Key.Ceiling1);
+                        
                         //render ceiling
-                        getPixels()[index] = ceilingTexture.getPixels()[(xPix & (ceilingTexture.getWidth()-1)) + (yPix & (ceilingTexture.getWidth()-1)) * ceilingTexture.getWidth()];
+                        getPixels()[index] = tmpTexture.getPixels()[(xPix & (tmpTexture.getWidth()-1)) + (yPix & (tmpTexture.getWidth()-1)) * tmpTexture.getWidth()];
                     }
                 }
             }
@@ -161,7 +167,7 @@ public class Render3D extends Render
     /**
      * Draw our walls
      */
-    public void renderWalls(final Texture wallTexture)
+    public void renderWalls(final Textures textures)
     {
         //reset our buffer to 0
         for (int x=0; x < zBufferWall.length; x++)
@@ -169,43 +175,80 @@ public class Render3D extends Render
             this.zBufferWall[x] = 0;
         }
         
-        for (int xBlock = -1; xBlock <= level.blocks.length; xBlock++)
+        for (int xBlock = 0; xBlock < level.getCols(); xBlock++)
         {
-            for (int zBlock = -1; zBlock <= level.blocks.length; zBlock++)
+            //only walls within a certain range will be rendered
+            if (!hasRangeX(xBlock))
+                continue;
+            
+            for (int zBlock = 0; zBlock < level.getRows(); zBlock++)
             {
+                //only walls within a certain range will be rendered
+                if (!hasRangeZ(zBlock))
+                    continue;
+                
                 final int extra = 1;
                 
-                Block block = level.create(xBlock, zBlock);
+                Block block = level.get(xBlock, zBlock);
                 
-                Block east = level.create(xBlock + extra, zBlock);
-                Block south = level.create(xBlock, zBlock + extra);
+                Block east = level.get(xBlock + extra, zBlock);
+                Block south = level.get(xBlock, zBlock + extra);
                 
                 if (block.solid)
                 {
                     //draw west wall
                     if (!east.solid)
-                        renderWall(xBlock + extra, xBlock + extra, zBlock, zBlock + extra, 0.5, wallTexture);
-                    
+                        renderWall(xBlock + extra, xBlock + extra, zBlock, zBlock + extra, 0.5, textures.getTexture(block.getEast()));
+
                     //draw north wall
                     if (!south.solid)
-                        renderWall(xBlock + extra, xBlock, zBlock + extra, zBlock + extra, 0.5, wallTexture);
+                        renderWall(xBlock + extra, xBlock, zBlock + extra, zBlock + extra, 0.5, textures.getTexture(block.getSouth()));
                 }
                 else
                 {
                     //draw east wall
                     if (east.solid)
-                        renderWall(xBlock + extra, xBlock + extra, zBlock + extra, zBlock, 0.5, wallTexture);
+                        renderWall(xBlock + extra, xBlock + extra, zBlock + extra, zBlock, 0.5, textures.getTexture(east.getWest()));
                     
                     //draw south wall
                     if (south.solid)
-                        renderWall(xBlock, xBlock + extra, zBlock + extra, zBlock + extra, 0.5, wallTexture);
+                        renderWall(xBlock, xBlock + extra, zBlock + extra, zBlock + extra, 0.5, textures.getTexture(south.getNorth()));
                 }
             }
         }
     }
     
+    /**
+     * Is the parameter provided within range to be considered for rendering.
+     * @param cell The x location of the object we want to check
+     * @return true if the x location provided is close enough to the player to be rendered, false otherwise
+     */
+    private boolean hasRangeX(final int cell)
+    {
+        return (cell - (right/16) <= renderRange && cell - (right/16) >= -renderRange);
+    }
+    
+    /**
+     * Is the parameter provided within range to be considered for rendering.
+     * @param cell The z location of the object we want to check
+     * @return true if the z location provided is close enough to the player to be rendered, false otherwise
+     */
+    private boolean hasRangeZ(final int cell)
+    {
+        return (cell - (forward/16) <= renderRange && cell - (forward/16) >= -renderRange);
+    }
+    
+    
     public void renderSprite(final double x, final double y, final double z, final double heightOffset, final int[] tmpPixels, final int imageWidth, final int imageHeight)
     {
+        //only sprites within a certain range will be rendered
+        if (!hasRangeZ((int)z))
+            return;
+        
+        //only sprites within a certain range will be rendered
+        if (!hasRangeX((int)x))
+            return;
+                
         //adjustment variables
         final double upCorrect = -0.125;
         final double rightCorrect = 0.0625;
@@ -256,6 +299,7 @@ public class Render3D extends Render
         if (ypd > getHeight())
             ypd = getHeight();
         
+        //this affects brightness
         rotZ *= 8;
         
         //fill in sprite pixels to our destination
@@ -326,7 +370,7 @@ public class Render3D extends Render
         
         double tex30 = 0;
         double tex40 = wallTexture.getWidth();
-        final double clip = 1.75;
+        final double clip = 1.25;
         
         //if both sides are going to be clipped don't bother rendering the wall
         if (rotLeftSideZ < clip && rotRightSideZ < clip)

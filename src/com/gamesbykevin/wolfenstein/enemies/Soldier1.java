@@ -28,7 +28,5 @@ public final class Soldier1 extends Enemy
         
         //add death animation
         super.addAnimation(State.Death, 4, 4, delay, false);
-        
-        super.getSpriteSheet().setCurrent(State.Idle);
     }
 }

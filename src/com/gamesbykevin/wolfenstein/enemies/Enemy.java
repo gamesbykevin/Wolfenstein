@@ -5,8 +5,6 @@ import com.gamesbykevin.framework.base.Sprite;
 
 import com.gamesbykevin.wolfenstein.display.Texture;
 
-import java.awt.image.BufferedImage;
-
 public abstract class Enemy extends Sprite
 {
     //each animation frame on the original image is the same size for each enemy

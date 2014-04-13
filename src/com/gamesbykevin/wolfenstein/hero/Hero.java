@@ -23,8 +23,8 @@ public final class Hero
         return input;
     }
     
-    public void update(final Engine engine)
+    public void update(final Engine engine) throws Exception
     {
-        getInput().update(engine.getKeyboard());
+        getInput().update(engine.getKeyboard(), engine.getManager().screen.render3d.level);
     }
 }

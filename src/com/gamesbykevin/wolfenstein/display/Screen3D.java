@@ -12,12 +12,12 @@ import java.awt.image.DataBufferInt;
 public final class Screen3D extends Render
 {
     //this object will do the 3d rendering
-    private Render3D render3d;
+    public Render3D render3d;
     
     //our final image that will be drawn for the 3d objects
     private BufferedImage image;
     
-    public Screen3D(final int width, final int height)
+    public Screen3D(final int width, final int height) throws Exception
     {
         super(width, height);
         
@@ -45,7 +45,7 @@ public final class Screen3D extends Render
     /**
      * Write pixel data to array for anything 3d: (walls/floor/ceiling/enemies/level-objects)
      */
-    public void renderPixelData(final Engine engine, final Texture wall, final Texture floor, final Texture ceiling, final Enemy sprite) throws Exception
+    public void renderPixelData(final Engine engine, final Textures textures, final Enemy sprite) throws Exception
     {
         //reset pixel data
         resetPixelData();
@@ -54,13 +54,13 @@ public final class Screen3D extends Render
         render3d.update(engine.getManager().getPlayer().getInput());
         
         //draw floor/ceiling
-        render3d.renderTopBottom(floor, ceiling);
+        render3d.renderTopBottom(textures);
         
         //draw walls
-        render3d.renderWalls(wall);
+        render3d.renderWalls(textures);
         
         //draw sprites/level-objects
-        final int xBlock = 1, zBlock = 5; 
+        final int xBlock = 5, zBlock = 5; 
         render3d.renderSprite(xBlock, 0, zBlock, 0, sprite.getPixels(), (int)sprite.getWidth(), (int)sprite.getHeight());
         
         //apply brightness to pixels based on depth
