@@ -46,7 +46,7 @@ public class Render3D extends Render
         this.zBuffer = new double[width * height];
         this.zBufferWall = new double[width];
         
-        this.level = new Level(5, 5, 7, 7);
+        this.level = new Level(3, 3, 7, 7);
     }
     
     /**
@@ -238,7 +238,16 @@ public class Render3D extends Render
         return (cell - (forward/16) <= renderRange && cell - (forward/16) >= -renderRange);
     }
     
-    
+    /**
+     * Draw Sprite at the specified location
+     * @param x x-coordinate
+     * @param y y-coordinate (height)
+     * @param z z-coordinate (depth)
+     * @param heightOffset Offset variable for the height
+     * @param tmpPixels Pixel array containing image data
+     * @param imageWidth Width of original 2d image
+     * @param imageHeight Height of original 2d image
+     */
     public void renderSprite(final double x, final double y, final double z, final double heightOffset, final int[] tmpPixels, final int imageWidth, final int imageHeight)
     {
         //only sprites within a certain range will be rendered
@@ -338,6 +347,7 @@ public class Render3D extends Render
      * @param zDistanceLeft depth of left side
      * @param zDistanceRight depth of right side
      * @param yHeight The height where the image will be drawn
+     * @param wallTexture The image of the wall that we want to draw
      */
     public void renderWall(final double xLeft, final double xRight, final double zDistanceLeft, final double zDistanceRight, final double yHeight, final Texture wallTexture)
     {
@@ -370,7 +380,7 @@ public class Render3D extends Render
         
         double tex30 = 0;
         double tex40 = wallTexture.getWidth();
-        final double clip = 1.25;
+        final double clip = 1;
         
         //if both sides are going to be clipped don't bother rendering the wall
         if (rotLeftSideZ < clip && rotRightSideZ < clip)
@@ -386,7 +396,7 @@ public class Render3D extends Render
         }
         
         //for clipping so walls aren't infinitely drawn
-        if (rotLeftSideZ < clip)
+        if (rotRightSideZ < clip)
         {
             double clip0 = (clip - rotLeftSideZ) / (rotRightSideZ - rotLeftSideZ);
             rotRightSideZ = rotLeftSideZ + (rotRightSideZ - rotLeftSideZ) * clip0;

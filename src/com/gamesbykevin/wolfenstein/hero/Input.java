@@ -2,15 +2,10 @@ package com.gamesbykevin.wolfenstein.hero;
 
 import com.gamesbykevin.framework.base.Sprite;
 import com.gamesbykevin.framework.input.Keyboard;
-import com.gamesbykevin.framework.labyrinth.Location;
 
-import com.gamesbykevin.wolfenstein.display.Render;
-import com.gamesbykevin.wolfenstein.engine.Engine;
 import com.gamesbykevin.wolfenstein.level.Block;
 import com.gamesbykevin.wolfenstein.level.Level;
 
-import java.awt.Image;
-import java.awt.image.BufferedImage;
 import java.awt.event.KeyEvent;
 
 public final class Input extends Sprite
@@ -26,7 +21,7 @@ public final class Input extends Sprite
     private int count = 0;
     
     //the speed the player moves while crouching
-    private final double speedCrouch = 0.5;
+    //private final double speedCrouch = 0.5;
     
     //the speed the player moves while running
     private final double speedRun    = 2.5;
@@ -74,8 +69,8 @@ public final class Input extends Sprite
     {
         double xMove = 0;
         double zMove = 0;
-        double jumpHeight = 1;
-        double crouchHeight = 2;
+        //double jumpHeight = 1;
+        //double crouchHeight = 2;
         double speed = speedWalk;
         
         for (InputOptions inputOption : InputOptions.values())
@@ -93,7 +88,7 @@ public final class Input extends Sprite
         boolean down = keyboard.hasKeyPressed(InputOptions.WalkBackward.getKey());
         boolean turnLeft = keyboard.hasKeyPressed(InputOptions.TurnLeft.getKey());
         boolean turnRight = keyboard.hasKeyPressed(InputOptions.TurnRight.getKey());
-        boolean jump = keyboard.hasKeyPressed(InputOptions.Jump.getKey());
+        //boolean jump = keyboard.hasKeyPressed(InputOptions.Jump.getKey());
         //boolean crouch = keyboard.hasKeyPressed(InputOptions.Crouch.getKey());
         boolean run = keyboard.hasKeyPressed(InputOptions.Run.getKey());
         
@@ -127,11 +122,13 @@ public final class Input extends Sprite
         if (turnRight)
             rotationa += rotationSpeed;
         
+        /*
         if (jump)
         {
             setY(getY() + jumpHeight);
             run = false;
         }
+        */
         
         /*
         //this is to crouch the player
@@ -157,8 +154,8 @@ public final class Input extends Sprite
         za += (zMove * Math.cos(rotation) - xMove * Math.sin(rotation)) * speed;
         
         //predict where the player will be next
-        int newX = (int)((getX() + xa) / 16);
-        int newZ = (int)((getZ() + za) / 16);
+        int newX = (int)((getX() + (xa*2)) / 16);
+        int newZ = (int)((getZ() + (za*2)) / 16);
         
         //where the player is currently
         int originalX = (int)(getX() / 16);
@@ -247,21 +244,24 @@ public final class Input extends Sprite
         Block s = level.get(xLoc, zLoc+extra);
         
         //block to the north east
-        Block ne = level.get(xLoc+extra, zLoc-extra);
+        //Block ne = level.get(xLoc+extra, zLoc-extra);
         
         //block to the north west
-        Block nw = level.get(xLoc-extra, zLoc-extra);
+        //Block nw = level.get(xLoc-extra, zLoc-extra);
         
         //block to the south east
-        Block se = level.get(xLoc+extra, zLoc+extra);
+        //Block se = level.get(xLoc+extra, zLoc+extra);
         
         //block to the south west
-        Block sw = level.get(xLoc-extra, zLoc+extra);
+        //Block sw = level.get(xLoc-extra, zLoc+extra);
         
         //center
         Block c = level.get(xLoc, zLoc);
         
+        return c.solid;
+        
         //if any of the blocks are solid we have collision
-        return (e.solid || w.solid || n.solid || s.solid || c.solid || ne.solid || nw.solid || se.solid || sw.solid);    
+        //return (e.solid || w.solid || n.solid || s.solid || c.solid);
+        //return (e.solid || w.solid || n.solid || s.solid || c.solid || ne.solid || nw.solid || se.solid || sw.solid);
     }
 }
