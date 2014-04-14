@@ -56,47 +56,26 @@ public final class Level
             {
                 tmp = maze.getLocation(column, row);
                 
-                //for right now we determine here where to open the wall or create a door
-                final State state = (Math.random() > .5) ? State.Open : State.Door;
+                //close the borders that are walls
+                for (Wall wall : Wall.values())
+                {
+                    if (tmp.hasWall(wall))
+                        changeBorder(column, row, wall, State.Closed);
+                }
                 
-                if (!tmp.hasWall(Wall.North))
-                {
-                    changeBorder(column, row,     Wall.North, state);
-                    changeBorder(column, row - 1, Wall.South, state);
-                }
-                else
-                {
-                    changeBorder(column, row,     Wall.North, State.Closed);
-                }
+                //for right now we determine here where to open the wall or create a door
+                State state = (Math.random() > .5) ? State.Open : State.Door;
                 
                 if (!tmp.hasWall(Wall.South))
                 {
                     changeBorder(column, row,     Wall.South, state);
-                    changeBorder(column, row + 1, Wall.North, state);
-                }
-                else
-                {
-                    changeBorder(column, row,     Wall.South, State.Closed);
-                }
-                
-                if (!tmp.hasWall(Wall.West))
-                {
-                    changeBorder(column,     row, Wall.West, state);
-                    changeBorder(column - 1, row, Wall.East, state);
-                }
-                else
-                {
-                    changeBorder(column, row,     Wall.West, State.Closed);
+                    changeBorder(column, row + 1, Wall.North, State.Open);
                 }
                 
                 if (!tmp.hasWall(Wall.East))
                 {
-                    changeBorder(column    , row, Wall.East, state);
-                    changeBorder(column + 1, row, Wall.West, state);
-                }
-                else
-                {
-                    changeBorder(column, row,     Wall.East, State.Closed);
+                    changeBorder(column,     row, Wall.East, state);
+                    changeBorder(column + 1, row, Wall.West, State.Open);
                 }
             }
         }
@@ -155,20 +134,6 @@ public final class Level
                                 case Closed:
                                     blocks[currentRow][currentCol] = new SolidBlock(Key.DoorMessage, Key.DoorMessage, Key.DoorMessage, Key.DoorMessage);
                                     break;
-
-                                case Door:
-                                    if (currentCol == this.roomColumns / 2)
-                                    {
-                                        blocks[currentRow][currentCol] = new Block();
-                                        //if this is the middle add a door
-                                        //blocks[currentRow][currentCol] = new SolidBlock(Key.Door1, Key.Door1, Key.DoorSide, Key.DoorSide);
-                                    }
-                                    else
-                                    {
-                                        //everything else is a wall
-                                        blocks[currentRow][currentCol] = new SolidBlock(Key.Cement1, Key.Cement2, Key.DoorSide, Key.DoorSide);
-                                    }
-                                    break;
                             }
                         }
                         break;
@@ -198,11 +163,10 @@ public final class Level
                                     break;
 
                                 case Door:
-                                    if (currentCol == this.roomColumns / 2)
+                                    if (roomColumn == this.roomColumns / 2 || roomRow == this.roomRows / 2)
                                     {
-                                        blocks[currentRow][currentCol] = new Block();
                                         //if this is the middle add a door
-                                        //blocks[currentRow][currentCol] = new SolidBlock(Key.Door1, Key.Door1, Key.DoorSide, Key.DoorSide);
+                                        blocks[currentRow][currentCol] = new SolidBlock(Key.Door1, Key.Door1, Key.DoorSide, Key.DoorSide, true);
                                     }
                                     else
                                     {
@@ -237,20 +201,6 @@ public final class Level
                                 case Closed:
                                     blocks[currentRow][currentCol] = new SolidBlock(Key.DoorMessage, Key.DoorMessage, Key.DoorMessage, Key.DoorMessage);
                                     break;
-
-                                case Door:
-                                    if (currentRow == this.roomRows / 2)
-                                    {
-                                        blocks[currentRow][currentCol] = new Block();
-                                        //if this is the middle add a door
-                                        //blocks[currentRow][currentCol] = new SolidBlock(Key.DoorSide, Key.DoorSide, Key.Door1, Key.Door1);
-                                    }
-                                    else
-                                    {
-                                        //everything else is a wall
-                                        blocks[currentRow][currentCol] = new SolidBlock(Key.DoorSide, Key.DoorSide, Key.Cement1, Key.Cement1);
-                                    }
-                                    break;
                             }
                         }
                         break;
@@ -280,11 +230,10 @@ public final class Level
                                     break;
 
                                 case Door:
-                                    if (currentRow == this.roomRows / 2)
+                                    if (roomColumn == this.roomColumns / 2 || roomRow == this.roomRows / 2)
                                     {
-                                        blocks[currentRow][currentCol] = new Block();
                                         //if this is the middle add a door
-                                        //blocks[currentRow][currentCol] = new SolidBlock(Key.DoorSide, Key.DoorSide, Key.Door1, Key.Door1);
+                                        blocks[currentRow][currentCol] = new SolidBlock(Key.DoorSide, Key.DoorSide, Key.Door1, Key.Door1, true);
                                     }
                                     else
                                     {

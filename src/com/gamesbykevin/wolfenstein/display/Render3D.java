@@ -22,7 +22,7 @@ public class Render3D extends Render
     private final double ceilingPostion = 8;
     
     //the number of blocks the object needs to be within in order to be rendered
-    private final int renderRange = 25;
+    private final int renderRange = 35;
     
     //temporary texture object
     private Texture tmpTexture;
@@ -46,7 +46,7 @@ public class Render3D extends Render
         this.zBuffer = new double[width * height];
         this.zBufferWall = new double[width];
         
-        this.level = new Level(3, 3, 7, 7);
+        this.level = new Level(3, 3, 9, 9);
     }
     
     /**
@@ -194,24 +194,24 @@ public class Render3D extends Render
                 Block east = level.get(xBlock + extra, zBlock);
                 Block south = level.get(xBlock, zBlock + extra);
                 
-                if (block.solid)
+                if (block.isSolid())
                 {
                     //draw west wall
-                    if (!east.solid)
+                    if (!east.isSolid())
                         renderWall(xBlock + extra, xBlock + extra, zBlock, zBlock + extra, 0.5, textures.getTexture(block.getEast()));
 
                     //draw north wall
-                    if (!south.solid)
+                    if (!south.isSolid())
                         renderWall(xBlock + extra, xBlock, zBlock + extra, zBlock + extra, 0.5, textures.getTexture(block.getSouth()));
                 }
                 else
                 {
                     //draw east wall
-                    if (east.solid)
+                    if (east.isSolid())
                         renderWall(xBlock + extra, xBlock + extra, zBlock + extra, zBlock, 0.5, textures.getTexture(east.getWest()));
                     
                     //draw south wall
-                    if (south.solid)
+                    if (south.isSolid())
                         renderWall(xBlock, xBlock + extra, zBlock + extra, zBlock + extra, 0.5, textures.getTexture(south.getNorth()));
                 }
             }

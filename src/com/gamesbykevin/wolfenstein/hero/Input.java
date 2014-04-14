@@ -154,8 +154,8 @@ public final class Input extends Sprite
         za += (zMove * Math.cos(rotation) - xMove * Math.sin(rotation)) * speed;
         
         //predict where the player will be next
-        int newX = (int)((getX() + (xa*2)) / 16);
-        int newZ = (int)((getZ() + (za*2)) / 16);
+        int newX = (int)((getX() + xa) / 16);
+        int newZ = (int)((getZ() + za) / 16);
         
         //where the player is currently
         int originalX = (int)(getX() / 16);
@@ -244,24 +244,21 @@ public final class Input extends Sprite
         Block s = level.get(xLoc, zLoc+extra);
         
         //block to the north east
-        //Block ne = level.get(xLoc+extra, zLoc-extra);
+        Block ne = level.get(xLoc+extra, zLoc-extra);
         
         //block to the north west
-        //Block nw = level.get(xLoc-extra, zLoc-extra);
+        Block nw = level.get(xLoc-extra, zLoc-extra);
         
         //block to the south east
-        //Block se = level.get(xLoc+extra, zLoc+extra);
+        Block se = level.get(xLoc+extra, zLoc+extra);
         
         //block to the south west
-        //Block sw = level.get(xLoc-extra, zLoc+extra);
+        Block sw = level.get(xLoc-extra, zLoc+extra);
         
         //center
         Block c = level.get(xLoc, zLoc);
         
-        return c.solid;
-        
         //if any of the blocks are solid we have collision
-        //return (e.solid || w.solid || n.solid || s.solid || c.solid);
-        //return (e.solid || w.solid || n.solid || s.solid || c.solid || ne.solid || nw.solid || se.solid || sw.solid);
+        return (e.isSolid() || w.isSolid() || n.isSolid() || s.isSolid() || c.isSolid() || ne.isSolid() || nw.isSolid() || se.isSolid() || sw.isSolid());
     }
 }
