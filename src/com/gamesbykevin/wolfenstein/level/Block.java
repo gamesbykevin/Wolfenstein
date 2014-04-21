@@ -7,13 +7,23 @@ public class Block
     //this block is empty
     private boolean solid = false;
     
-    //this block is not a door
-    private boolean door = false;
+    //this block is not a door by default
+    private boolean door;
     
     //default solid block
-    public static Block solidBlock = new SolidBlock(Key.Cement1, Key.Cement1, Key.Cement1, Key.Cement1, false);
+    public static Block solidBlock = new SolidBlock(null, null, null, null, false);
     
     private Key north, south, east, west;
+    
+    public Block(final boolean door)
+    {
+        setDoor(door);
+    }
+    
+    public Block()
+    {
+        this(false);
+    }
     
     protected void setWest(final Key west)
     {

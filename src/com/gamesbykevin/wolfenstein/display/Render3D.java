@@ -11,18 +11,23 @@ public class Render3D extends Render
     //our zBufferWall will store the depth of the walls so we can determine the closest wall to the player to render
     private double[] zBufferWall;
     
+    /**
+     * The depth limit we use to determine what is clipped
+     */
+    public static final double CLIP = .333;
+    
     //this will help determine the brightness depending on how far away the object is
-    private double renderBrightnessDistance = 5000;
+    private final double renderBrightnessDistance = 5000;
     
     //render pixels within a certain depth
-    private final double depthLimit = 200.0;
+    private final double depthLimit = 500.0;
     
     //the height of the ceiling and floor
     private final double floorPosition  = 8;
     private final double ceilingPostion = 8;
     
-    //the number of blocks the object needs to be within in order to be rendered
-    private final int renderRange = 35;
+    //the number of blocks the object needs to be within range in order to be rendered
+    private final int renderRange = 50;
     
     //temporary texture object
     private Texture tmpTexture;
@@ -46,11 +51,18 @@ public class Render3D extends Render
         this.zBuffer = new double[width * height];
         this.zBufferWall = new double[width];
         
-        this.level = new Level(3, 3, 9, 9);
+        final int roomCol = 20;
+        final int roomRow = 20;
+        
+        //each room has a certain number of columns and rows
+        final int eachRoomCol = 15;
+        final int eachRoomRow = 15;
+        
+        this.level = new Level(roomCol, roomRow, eachRoomCol, eachRoomRow);
     }
     
     /**
-     * Set the heroes current location etc..
+     * Set the heroes current location/information etc..
      * @param input Hero input object
      */
     public void update(final Input input)
@@ -175,19 +187,24 @@ public class Render3D extends Render
             this.zBufferWall[x] = 0;
         }
         
-        for (int xBlock = 0; xBlock < level.getCols(); xBlock++)
+        //get player current position
+        final int currentX = (int)(right/16);
+        final int currentZ = (int)(forward/16);
+        
+        //check blocks in render range
+        for (int xBlock = currentX - renderRange; xBlock < currentX + renderRange; xBlock++)
         {
-            //only walls within a certain range will be rendered
-            if (!hasRangeX(xBlock))
+            //stay in bounds
+            if (xBlock < 0 || xBlock >= level.getCols() || !hasRangeX(xBlock))
                 continue;
             
-            for (int zBlock = 0; zBlock < level.getRows(); zBlock++)
+            for (int zBlock = currentZ - renderRange; zBlock < currentZ + renderRange; zBlock++)
             {
-                //only walls within a certain range will be rendered
-                if (!hasRangeZ(zBlock))
+                //stay in bounds
+                if (zBlock < 0 || zBlock >= level.getRows() || !hasRangeZ(zBlock))
                     continue;
                 
-                final int extra = 1;
+                final double extra = 1;
                 
                 Block block = level.get(xBlock, zBlock);
                 
@@ -351,6 +368,10 @@ public class Render3D extends Render
      */
     public void renderWall(final double xLeft, final double xRight, final double zDistanceLeft, final double zDistanceRight, final double yHeight, final Texture wallTexture)
     {
+        //don't render if there is no texture
+        if (wallTexture == null)
+            return;
+        
         final double upCorrect = 0.0625;
         final double rightCorrect = 0.0625;
         final double forwardCorrect = 0.0625;
@@ -378,27 +399,26 @@ public class Render3D extends Render
         
         double rotRightSideZ = zcRight * cosine + xcRight * sine;
         
-        double tex30 = 0;
-        double tex40 = wallTexture.getWidth();
-        final double clip = 1;
-        
         //if both sides are going to be clipped don't bother rendering the wall
-        if (rotLeftSideZ < clip && rotRightSideZ < clip)
+        if (rotLeftSideZ < CLIP && rotRightSideZ < CLIP)
             return;
         
+        double tex30 = 0;
+        double tex40 = wallTexture.getWidth();
+        
         //for clipping so walls aren't infinitely drawn
-        if (rotLeftSideZ < clip)
+        if (rotLeftSideZ < CLIP)
         {
-            double clip0 = (clip - rotLeftSideZ) / (rotRightSideZ - rotLeftSideZ);
+            double clip0 = (CLIP - rotLeftSideZ) / (rotRightSideZ - rotLeftSideZ);
             rotLeftSideZ = rotLeftSideZ + (rotRightSideZ - rotLeftSideZ) * clip0;
             rotLeftSideX = rotLeftSideX + (rotRightSideX - rotLeftSideX) * clip0;
             tex30 = tex30 + (tex40 - tex30) * clip0;
         }
         
         //for clipping so walls aren't infinitely drawn
-        if (rotRightSideZ < clip)
+        if (rotRightSideZ < CLIP)
         {
-            double clip0 = (clip - rotLeftSideZ) / (rotRightSideZ - rotLeftSideZ);
+            double clip0 = (CLIP - rotLeftSideZ) / (rotRightSideZ - rotLeftSideZ);
             rotRightSideZ = rotLeftSideZ + (rotRightSideZ - rotLeftSideZ) * clip0;
             rotRightSideX = rotLeftSideX + (rotRightSideX - rotLeftSideX) * clip0;
             tex30 = tex30 + (tex40 - tex30) * clip0;
@@ -408,16 +428,18 @@ public class Render3D extends Render
         double xPixelLeft  = (rotLeftSideX  / rotLeftSideZ  * getHeight() + getWidth() / 2);
         double xPixelRight = (rotRightSideX / rotRightSideZ * getHeight() + getWidth() / 2);
         
-        //don't draw
+        //don't draw because it would overlap
         if (xPixelLeft >= xPixelRight)
             return;
         
         int xPixelLeftInt = (int)xPixelLeft;
         int xPixelRightInt = (int)xPixelRight;
         
+        //keep in boundary of screen
         if (xPixelLeftInt < 0)
             xPixelLeftInt = 0;
         
+        //keep in boundary of screen
         if (xPixelRightInt > getWidth())
             xPixelRightInt = getWidth();
         
@@ -427,8 +449,8 @@ public class Render3D extends Render
         double yPixelRightTop =     ((yCornerTR / rotRightSideZ * getHeight()) + (getHeight() / 2.0));
         double yPixelRightBottom =  ((yCornerBR / rotRightSideZ * getHeight()) + (getHeight() / 2.0));
         
-        double tex1 = 1 / rotLeftSideZ;
-        double tex2 = 1 / rotRightSideZ;
+        double tex1 = 1.0 / rotLeftSideZ;
+        double tex2 = 1.0 / rotRightSideZ;
         double tex3 = tex30 / rotLeftSideZ;
         double tex4 = tex40 / rotRightSideZ - tex3;
         
@@ -441,7 +463,7 @@ public class Render3D extends Render
             //calculate depth
             double zWall = (tex1 + (tex2 - tex1) * pixelRotation);
             
-            //if the depth of our zWall is closer to the player than zBufferWall skip this pixel
+            //if the depth of our zBufferWall is greater than the current depth zWall skip this pixel
             if (zBufferWall[x] > zWall)
                 continue;
             

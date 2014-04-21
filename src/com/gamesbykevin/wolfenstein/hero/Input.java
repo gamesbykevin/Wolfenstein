@@ -2,6 +2,7 @@ package com.gamesbykevin.wolfenstein.hero;
 
 import com.gamesbykevin.framework.base.Sprite;
 import com.gamesbykevin.framework.input.Keyboard;
+import com.gamesbykevin.wolfenstein.display.Render3D;
 
 import com.gamesbykevin.wolfenstein.level.Block;
 import com.gamesbykevin.wolfenstein.level.Level;
@@ -13,11 +14,13 @@ public final class Input extends Sprite
     //location of player
     private double xa, za, rotation, rotationa;
     
-    //store the xs and zs when we don't have collision
+    //store the xs and zs location so when we have collision we can move the player back
     private double xs = getX(), zs = getZ();
     
+    //are we walking or running
     private boolean walking = false, running = false;
     
+    //this variable will be used for animation
     private int count = 0;
     
     //the speed the player moves while crouching
@@ -45,7 +48,9 @@ public final class Input extends Sprite
         TurnRight(KeyEvent.VK_RIGHT),
         Crouch(KeyEvent.VK_Z),
         Jump(KeyEvent.VK_SPACE),
-        Run(KeyEvent.VK_X);
+        Run(KeyEvent.VK_X),
+        OpenDoor(KeyEvent.VK_SPACE),
+        Shoot(KeyEvent.VK_ENTER);
         
         private final int key;
         
@@ -65,10 +70,10 @@ public final class Input extends Sprite
         
     }
     
-    public void update(final Keyboard keyboard, final Level level) throws Exception
+    public void update(final Keyboard keyboard, final Level level)
     {
-        double xMove = 0;
-        double zMove = 0;
+        int xMove = 0;
+        int zMove = 0;
         //double jumpHeight = 1;
         //double crouchHeight = 2;
         double speed = speedWalk;
@@ -91,19 +96,30 @@ public final class Input extends Sprite
         //boolean jump = keyboard.hasKeyPressed(InputOptions.Jump.getKey());
         //boolean crouch = keyboard.hasKeyPressed(InputOptions.Crouch.getKey());
         boolean run = keyboard.hasKeyPressed(InputOptions.Run.getKey());
+        boolean openDoor = keyboard.hasKeyPressed(InputOptions.OpenDoor.getKey());
+        boolean shoot = keyboard.hasKeyPressed(InputOptions.Shoot.getKey());
         
-        walking = false;
+        //you can't do both at same time
+        if (up)
+            down = false;
+        if (right)
+            left = false;
+        if (turnRight)
+            turnLeft = false;
+        
+        //default walking to false
+        setWalking(false);
         
         if (up)
         {
             zMove++;
-            walking = true;
+            setWalking(true);
         }
         
         if (down)
         {
             zMove--;
-            walking = true;
+            setWalking(true);
         }
         
         //this is to simulate the heroes head moving up and down while walking
@@ -121,6 +137,9 @@ public final class Input extends Sprite
         
         if (turnRight)
             rotationa += rotationSpeed;
+        
+        if (!turnLeft && !turnRight)
+            rotationa = 0;
         
         /*
         if (jump)
@@ -140,26 +159,29 @@ public final class Input extends Sprite
         }
         */
         
-        running = false;
-        
-        //if we are running increase walkSpeed
+        //if we are running increase speed
         if (run)
         {
             speed = speedRun;
-            running = true;
+            setRunning(true);
+        }
+        else
+        {
+            //we are not running
+            setRunning(false);
         }
         
         //calculate the additional space moved
-        xa += (xMove * Math.cos(rotation) + zMove * Math.sin(rotation)) * speed;
-        za += (zMove * Math.cos(rotation) - xMove * Math.sin(rotation)) * speed;
+        setXA((xMove * Math.cos(getRotation()) + zMove * Math.sin(getRotation())) * speed);
+        setZA((zMove * Math.cos(getRotation()) - xMove * Math.sin(getRotation())) * speed);
         
         //predict where the player will be next
-        int newX = (int)((getX() + xa) / 16);
-        int newZ = (int)((getZ() + za) / 16);
+        final double newX = (getX() + getXA()) / 16;
+        final double newZ = (getZ() + getZA()) / 16;
         
         //where the player is currently
-        int originalX = (int)(getX() / 16);
-        int originalZ = (int)(getZ() / 16);
+        final double originalX = getX() / 16;
+        final double originalZ = getZ() / 16;
         
         //just check if x collision has occurred
         final boolean xCollision = hasCollision(level, newX, originalZ);
@@ -169,31 +191,175 @@ public final class Input extends Sprite
         
         if (!xCollision)
         {
-            setX(getX() + xa);
-            xs = getX();
+            //set new position
+            setX(getX() + getXA());
+            
+            //store valid location
+            setXS(getX());
         }
         else
         {
-            setX(xs);
+            //restore valid location
+            setX(getXS());
         }
         
         if (!zCollision)
         {
-            setZ(getZ() + za);
-            zs = getZ();
+            //set new position
+            setZ(getZ() + getZA());
+            
+            //store valid location
+            setZS(getZ());
         }
         else
         {
-            setZ(zs);
+            //restore valid location
+            setZ(getZS());
         }
         
-        xa *= 0.1;
-        za *= 0.1;
+        //slow down speed
+        setXA(getXA() * 0.1);
+        setZA(getZA() * 0.1);
         
+        //apply gravity
         setY(getY() * .9);
         
-        rotation += rotationa;
-        rotationa *= 0.5;
+        //if the angle is to be moved
+        if (rotationa != 0)
+        {
+            //add rotation angle to overall rotation
+            setRotation(getRotation() + rotationa);
+
+            //keep radian value from getting to large
+            if (getRotation() > 2 * Math.PI)
+                setRotation(getRotation() - (2 * Math.PI));
+            if (getRotation() < 0)
+                setRotation(getRotation() + (2 * Math.PI));
+        
+            //decrease rotation angle speed
+            rotationa *= 0.5;
+        }
+    }
+    
+    /**
+     * Check for collision with walls
+     * @param level The level that contains the blocks
+     * @param xLoc x location where the player is
+     * @param zLoc z location where the player is
+     * @return true if we hit a wall, false otherwise
+     */
+    private boolean hasCollision(final Level level, final double xLoc, final double zLoc)
+    {
+        //if no movement, no collision
+        if (getXA() == 0 && getZA() == 0)
+            return false;
+        
+        
+        //the blocks in each direction
+        Block w, e, n, s;
+        
+        //the current new block the player will be in
+        Block c = level.get(xLoc, zLoc);
+        
+        //if the current block is not a door
+        if (!c.isDoor())
+        {
+            //wall distance limit
+            final double WALL_D = .950;
+            
+            w = level.get(xLoc - WALL_D, zLoc);
+            e = level.get(xLoc + WALL_D, zLoc);
+            n = level.get(xLoc, zLoc - WALL_D);
+            s = level.get(xLoc, zLoc + WALL_D);
+            
+            if (w.isSolid() && !w.isDoor())
+                return true;
+            if (e.isSolid() && !e.isDoor())
+                return true;
+            if (n.isSolid() && !n.isDoor())
+                return true;
+            if (s.isSolid() && !s.isDoor())
+                return true;
+            
+            //check corners when closer
+            Block nw = level.get(xLoc - Render3D.CLIP, zLoc - Render3D.CLIP);
+            Block ne = level.get(xLoc + Render3D.CLIP, zLoc - Render3D.CLIP);
+            Block sw = level.get(xLoc - Render3D.CLIP, zLoc + Render3D.CLIP);
+            Block se = level.get(xLoc + Render3D.CLIP, zLoc + Render3D.CLIP);
+            
+            if (nw.isSolid() && !nw.isDoor())
+                return true;
+            if (ne.isSolid() && !ne.isDoor())
+                return true;
+            if (sw.isSolid() && !sw.isDoor())
+                return true;
+            if (se.isSolid() && !se.isDoor())
+                return true;
+        }
+        else
+        {
+            w = level.get(xLoc - Render3D.CLIP, zLoc);
+            e = level.get(xLoc + Render3D.CLIP, zLoc);
+            n = level.get(xLoc, zLoc - Render3D.CLIP);
+            s = level.get(xLoc, zLoc + Render3D.CLIP);
+            
+            if (w.isSolid())
+                return true;
+            if (e.isSolid())
+                return true;
+            if (n.isSolid())
+                return true;
+            if (s.isSolid())
+                return true;
+        }
+        
+        //no collision
+        return false;
+    }
+
+    private void setXS(final double xs)
+    {
+        this.xs = xs;
+    }
+    
+    private void setZS(final double zs)
+    {
+        this.zs = zs;
+    }
+    
+    private double getXS()
+    {
+        return this.xs;
+    }
+    
+    private double getZS()
+    {
+        return this.zs;
+    }
+    
+    private void setXA(final double xa)
+    {
+        this.xa = xa;
+    }
+    
+    private void setZA(final double za)
+    {
+        this.za = za;
+    }
+    
+    private double getXA()
+    {
+        return this.xa;
+    }
+    
+    private double getZA()
+    {
+        return this.za;
+    }
+    
+    private void setRotation(final double rotation)
+    {
+        this.rotation = rotation;
     }
     
     public double getRotation()
@@ -201,11 +367,29 @@ public final class Input extends Sprite
         return rotation;
     }
     
+    private void setRunning(final boolean running)
+    {
+        this.running = running;
+    }
+    
+    /**
+     * Is the player running
+     * @return true if running, false otherwise
+     */
     public boolean isRunning()
     {
         return running;
     }
     
+    private void setWalking(final boolean walking)
+    {
+        this.walking = walking;
+    }
+    
+    /**
+     * Is the player walking
+     * @return true if walking, false otherwise
+     */
     public boolean isWalking()
     {
         return walking;
@@ -218,47 +402,5 @@ public final class Input extends Sprite
     public int getCount()
     {
         return count;
-    }
-    
-    /**
-     * Check for collision
-     * @param level The level that contains the blocks
-     * @param xLoc x location
-     * @param zLoc z location
-     * @return true if we hit a wall, false otherwise
-     */
-    private boolean hasCollision(final Level level, final int xLoc, final int zLoc) throws Exception
-    {
-        final int extra = 1;
-        
-        //block to the east
-        Block e = level.get(xLoc+extra, zLoc);
-        
-        //block to the west
-        Block w = level.get(xLoc-extra, zLoc);
-        
-        //block to the north
-        Block n = level.get(xLoc, zLoc-extra);
-        
-        //block to the south
-        Block s = level.get(xLoc, zLoc+extra);
-        
-        //block to the north east
-        Block ne = level.get(xLoc+extra, zLoc-extra);
-        
-        //block to the north west
-        Block nw = level.get(xLoc-extra, zLoc-extra);
-        
-        //block to the south east
-        Block se = level.get(xLoc+extra, zLoc+extra);
-        
-        //block to the south west
-        Block sw = level.get(xLoc-extra, zLoc+extra);
-        
-        //center
-        Block c = level.get(xLoc, zLoc);
-        
-        //if any of the blocks are solid we have collision
-        return (e.isSolid() || w.isSolid() || n.isSolid() || s.isSolid() || c.isSolid() || ne.isSolid() || nw.isSolid() || se.isSolid() || sw.isSolid());
     }
 }

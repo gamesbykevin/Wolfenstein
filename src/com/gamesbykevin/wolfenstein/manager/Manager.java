@@ -54,7 +54,7 @@ public final class Manager implements IManager
         this.window = new Rectangle(engine.getMain().getScreen());
         
         this.player = new Hero();
-        this.player.setLocation(40, 40);
+        this.player.setLocation(80, 80);
                
         this.textures = new Textures(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage));
         

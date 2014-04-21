@@ -166,7 +166,8 @@ public final class Level
                                     if (roomColumn == this.roomColumns / 2 || roomRow == this.roomRows / 2)
                                     {
                                         //if this is the middle add a door
-                                        blocks[currentRow][currentCol] = new SolidBlock(Key.Door1, Key.Door1, Key.DoorSide, Key.DoorSide, true);
+                                        //blocks[currentRow][currentCol] = new SolidBlock(Key.Door1, Key.Door1, Key.DoorSide, Key.DoorSide, true);
+                                        blocks[currentRow][currentCol] = new Block(true);
                                     }
                                     else
                                     {
@@ -233,7 +234,8 @@ public final class Level
                                     if (roomColumn == this.roomColumns / 2 || roomRow == this.roomRows / 2)
                                     {
                                         //if this is the middle add a door
-                                        blocks[currentRow][currentCol] = new SolidBlock(Key.DoorSide, Key.DoorSide, Key.Door1, Key.Door1, true);
+                                        //blocks[currentRow][currentCol] = new SolidBlock(Key.DoorSide, Key.DoorSide, Key.Door1, Key.Door1, true);
+                                        blocks[currentRow][currentCol] = new Block(true);
                                     }
                                     else
                                     {
@@ -249,27 +251,35 @@ public final class Level
         }
     }
     
+    /**
+     * Get the total number of columns for the entire maze
+     * @return Total number of columns in complete maze
+     */
     public int getCols()
     {
         return this.blocks[0].length;
     }
     
+    /**
+     * Get the total number of rows for the entire maze
+     * @return Total number of rows in complete maze
+     */
     public int getRows()
     {
         return this.blocks.length;
     }
     
-    public Block get(final double x, final double y)
+    public Block get(final double column, final double row)
     {
-        return get((int)x, (int)y);
+        return get((int)column, (int)row);
     }
     
-    public Block get(final int x, final int y)
+    public Block get(final int column, final int row)
     {
         //if the index is out of bounds return a default solid block
-        if (x < 0 || x >= blocks[0].length || y < 0 || y >= blocks.length)
+        if (column < 0 || column >= blocks[0].length || row < 0 || row >= blocks.length)
             return Block.solidBlock;
         
-        return blocks[y][x];
+        return blocks[row][column];
     }
 }
