@@ -23,14 +23,17 @@ public final class Input extends Sprite
     //this variable will be used for animation
     private int count = 0;
     
+    //the players location on the overall map
+    private int column, row;
+    
     //the speed the player moves while crouching
     //private final double speedCrouch = 0.5;
     
     //the speed the player moves while running
-    private final double speedRun    = 2.5;
+    private final double speedRun    = 3.5;
     
     //the speed the player moves while walking
-    private final double speedWalk   = 1;
+    private final double speedWalk   = 1.75;
     
     //how fast can the player turn
     private final double rotationSpeed = 0.055;
@@ -185,15 +188,16 @@ public final class Input extends Sprite
         
         //just check if x collision has occurred
         final boolean xCollision = hasCollision(level, newX, originalZ);
-        
+
         //just check if z collision has occurred
         final boolean zCollision = hasCollision(level, originalX, newZ);
         
+        //if there is no collision here we can move to the new position
         if (!xCollision)
         {
             //set new position
             setX(getX() + getXA());
-            
+
             //store valid location
             setXS(getX());
         }
@@ -203,11 +207,12 @@ public final class Input extends Sprite
             setX(getXS());
         }
         
+        //if there is no collision here we can move to the new position
         if (!zCollision)
         {
             //set new position
             setZ(getZ() + getZA());
-            
+
             //store valid location
             setZS(getZ());
         }
@@ -215,6 +220,32 @@ public final class Input extends Sprite
         {
             //restore valid location
             setZ(getZS());
+        }
+
+        //now that the position is set calculate where the player is on the overall level
+        this.column = (int)(getX() / 16);
+        this.row = (int)(getZ() / 16);
+        
+        //check if the player is trying to open a door
+        if (openDoor)
+        {
+            //temp block object
+            Block block;
+            
+            final int distance = 2;
+
+            //now check all blocks around the player
+            for (int x = -distance; x <= distance; x++)
+            {
+                for (int z = -distance; z <= distance; z++)
+                {
+                    block = level.get(originalX + x, originalZ + z);
+
+                    //if this block is a door then open
+                    if (block.isDoor())
+                        block.open();
+                }
+            }
         }
         
         //slow down speed
@@ -241,79 +272,160 @@ public final class Input extends Sprite
         }
     }
     
+    public int getPlayerX()
+    {
+        return this.column;
+    }
+    
+    public int getPlayerZ()
+    {
+        return this.row;
+    }
+    
     /**
      * Check for collision with walls
      * @param level The level that contains the blocks
      * @param xLoc x location where the player is
      * @param zLoc z location where the player is
+     * @param openDoor Does the player want to open a door
      * @return true if we hit a wall, false otherwise
      */
     private boolean hasCollision(final Level level, final double xLoc, final double zLoc)
     {
-        //if no movement, no collision
-        if (getXA() == 0 && getZA() == 0)
-            return false;
-        
-        
-        //the blocks in each direction
-        Block w, e, n, s;
-        
-        //the current new block the player will be in
-        Block c = level.get(xLoc, zLoc);
-        
-        //if the current block is not a door
-        if (!c.isDoor())
+        try
         {
-            //wall distance limit
-            final double WALL_D = .950;
-            
-            w = level.get(xLoc - WALL_D, zLoc);
-            e = level.get(xLoc + WALL_D, zLoc);
-            n = level.get(xLoc, zLoc - WALL_D);
-            s = level.get(xLoc, zLoc + WALL_D);
-            
-            if (w.isSolid() && !w.isDoor())
-                return true;
-            if (e.isSolid() && !e.isDoor())
-                return true;
-            if (n.isSolid() && !n.isDoor())
-                return true;
-            if (s.isSolid() && !s.isDoor())
-                return true;
-            
-            //check corners when closer
-            Block nw = level.get(xLoc - Render3D.CLIP, zLoc - Render3D.CLIP);
-            Block ne = level.get(xLoc + Render3D.CLIP, zLoc - Render3D.CLIP);
-            Block sw = level.get(xLoc - Render3D.CLIP, zLoc + Render3D.CLIP);
-            Block se = level.get(xLoc + Render3D.CLIP, zLoc + Render3D.CLIP);
-            
-            if (nw.isSolid() && !nw.isDoor())
-                return true;
-            if (ne.isSolid() && !ne.isDoor())
-                return true;
-            if (sw.isSolid() && !sw.isDoor())
-                return true;
-            if (se.isSolid() && !se.isDoor())
-                return true;
+            //temp block object
+            Block block;
+
+            //the current new block the player will be in
+            Block current = level.get(xLoc, zLoc);
+
+            //if the current block is not a door
+            if (!current.isDoor())
+            {
+                //check for walls withing this distance
+                final double WALL_D = .950;
+
+                //west
+                block = level.get(xLoc - WALL_D, zLoc);
+
+                if (hasCollision(block))
+                    return true;
+
+                //east
+                block = level.get(xLoc + WALL_D, zLoc);
+
+                if (hasCollision(block))
+                    return true;
+
+                //north
+                block = level.get(xLoc, zLoc - WALL_D);
+                
+                if (hasCollision(block))
+                    return true;
+
+                //south
+                block = level.get(xLoc, zLoc + WALL_D);
+                
+                if (hasCollision(block))
+                    return true;
+
+                /**
+                 * now check the corners at a closer distance
+                 */
+
+                //north west
+                block = level.get(xLoc - Render3D.CLIP, zLoc - Render3D.CLIP);
+                
+                if (hasCollision(block))
+                    return true;
+
+                //north east
+                block = level.get(xLoc + Render3D.CLIP, zLoc - Render3D.CLIP);
+
+                if (hasCollision(block))
+                    return true;
+                
+                //south west
+                block = level.get(xLoc - Render3D.CLIP, zLoc + Render3D.CLIP);
+
+                if (hasCollision(block))
+                    return true;
+                
+                //south east
+                block = level.get(xLoc + Render3D.CLIP, zLoc + Render3D.CLIP);
+                
+                if (hasCollision(block))
+                    return true;
+            }
+            else
+            {
+                //if the door is open check walls next to door
+                if (current.getDoor().isOpen())
+                {
+                    //west
+                    block = level.get(xLoc - Render3D.CLIP, zLoc);
+
+                    if (hasCollision(block))
+                        return true;
+
+                    //east
+                    block = level.get(xLoc + Render3D.CLIP, zLoc);
+
+                    if (hasCollision(block))
+                        return true;
+
+                    //north
+                    block = level.get(xLoc, zLoc - Render3D.CLIP);
+
+                    if (hasCollision(block))
+                        return true;
+
+                    //south
+                    block = level.get(xLoc, zLoc + Render3D.CLIP);
+
+                    if (hasCollision(block))
+                        return true;
+                }
+                else
+                {
+                    //if door is not open we have collision
+                    return true;
+                }
+            }
         }
-        else
+        catch(Exception e)
         {
-            w = level.get(xLoc - Render3D.CLIP, zLoc);
-            e = level.get(xLoc + Render3D.CLIP, zLoc);
-            n = level.get(xLoc, zLoc - Render3D.CLIP);
-            s = level.get(xLoc, zLoc + Render3D.CLIP);
-            
-            if (w.isSolid())
-                return true;
-            if (e.isSolid())
-                return true;
-            if (n.isSolid())
-                return true;
-            if (s.isSolid())
-                return true;
+            //print the error
+            e.printStackTrace();
         }
         
         //no collision
+        return false;
+    }
+    
+    /**
+     * Check the block status to determine if there is a collision
+     * @param block The block we want to check
+     * @return true will be returned for the following conditions.<br>
+     * 1. If the block is solid and isn't a door.<br>
+     * 2. If the block is solid and and is a door but the door isn't open.
+     */
+    private boolean hasCollision(final Block block)
+    {
+        //is this block solid
+        if (block.isSolid())
+        {
+            //if it is not a door we have collision
+            if (!block.isDoor())
+                return true;
+
+            //if it is a door but not fully open we have collision
+            if (!block.getDoor().isOpen())
+                return true;
+        }
+        
+        //no collision was detected
         return false;
     }
 

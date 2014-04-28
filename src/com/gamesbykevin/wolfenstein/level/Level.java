@@ -166,8 +166,7 @@ public final class Level
                                     if (roomColumn == this.roomColumns / 2 || roomRow == this.roomRows / 2)
                                     {
                                         //if this is the middle add a door
-                                        //blocks[currentRow][currentCol] = new SolidBlock(Key.Door1, Key.Door1, Key.DoorSide, Key.DoorSide, true);
-                                        blocks[currentRow][currentCol] = new Block(true);
+                                        blocks[currentRow][currentCol] = new SolidBlock(Key.Door1, Key.Door1, Key.DoorSide, Key.DoorSide, true);
                                     }
                                     else
                                     {
@@ -234,8 +233,7 @@ public final class Level
                                     if (roomColumn == this.roomColumns / 2 || roomRow == this.roomRows / 2)
                                     {
                                         //if this is the middle add a door
-                                        //blocks[currentRow][currentCol] = new SolidBlock(Key.DoorSide, Key.DoorSide, Key.Door1, Key.Door1, true);
-                                        blocks[currentRow][currentCol] = new Block(true);
+                                        blocks[currentRow][currentCol] = new SolidBlock(Key.DoorSide, Key.DoorSide, Key.Door1, Key.Door1, true);
                                     }
                                     else
                                     {
@@ -281,5 +279,42 @@ public final class Level
             return Block.solidBlock;
         
         return blocks[row][column];
+    }
+    
+    /**
+     * Here we will manage the door animations
+     * @param time Time duration per update to deduct from timer
+     * @param playerX Current player's location 
+     * @param playerZ Current player's location
+     */
+    public void update(final long time, final int playerX, final int playerZ)
+    {
+        final int distance = 2;
+        
+        for (int row=0; row < blocks.length; row++)
+        {
+            for (int col=0; col < blocks[0].length; col++)
+            {
+                
+                //get current block
+                final Block b = get(col, row);
+                
+                //we are only interested in the door(s)
+                if (!b.isDoor())
+                    continue;
+                
+                //if the door is open don't update if the player is to close to it
+                if (b.getDoor().isOpen())
+                {
+                    //if the player is close enough to a block, then skip it
+                    if (col >= playerX - distance && col <= playerX + distance &&
+                        row >= playerZ - distance && row <= playerZ + distance)
+                        continue;
+                }
+                
+                //update door status
+                b.getDoor().update(time);
+            }
+        }
     }
 }

@@ -16,27 +16,28 @@ public class Render3D extends Render
      */
     public static final double CLIP = .333;
     
-    //this will help determine the brightness depending on how far away the object is
-    private final double renderBrightnessDistance = 5000;
+    //determine the brightness depending on depth, the higher the value the more brighter
+    private final double renderBrightnessDistance = 10000;
     
     //render pixels within a certain depth
-    private final double depthLimit = 500.0;
+    private final double depthLimit = 300.0;
     
     //the height of the ceiling and floor
     private final double floorPosition  = 8;
     private final double ceilingPostion = 8;
     
     //the number of blocks the object needs to be within range in order to be rendered
-    private final int renderRange = 50;
+    private final int renderRange = 45;
     
     //temporary texture object
     private Texture tmpTexture;
     
+    //our current level
     public Level level;
     
     //store hero input variables because all 3d objects will be rendered around the hero
     private double forward, right, up, walking, sine, cosine, rotation;
-    private int count;
+    private int count, playerX = 0, playerZ = 0;
     private boolean isWalking, isRunning;
     
     /**
@@ -51,27 +52,33 @@ public class Render3D extends Render
         this.zBuffer = new double[width * height];
         this.zBufferWall = new double[width];
         
-        final int roomCol = 20;
-        final int roomRow = 20;
+        final int roomCol = 3;
+        final int roomRow = 3;
         
         //each room has a certain number of columns and rows
-        final int eachRoomCol = 15;
-        final int eachRoomRow = 15;
+        final int eachRoomCol = 11;
+        final int eachRoomRow = 11;
         
         this.level = new Level(roomCol, roomRow, eachRoomCol, eachRoomRow);
     }
     
     /**
-     * Set the heroes current location/information etc..
+     * Set the heroes current location/information etc..<br>
+     * Update level status
      * @param input Hero input object
+     * @param time The time to deduct per update (nano-seconds)
      */
-    public void update(final Input input)
+    public void update(final Input input, final long time)
     {
         //negative value would move backward
         forward  = input.getZ();
         
         //negative value would move left
         right    = input.getX();
+        
+        //set the players current position
+        playerX = input.getPlayerX();
+        playerZ = input.getPlayerZ();
         
         //set to 0 at first
         walking = 0;
@@ -89,6 +96,9 @@ public class Render3D extends Render
         
         isWalking = input.isWalking();
         isRunning = input.isRunning();
+        
+        //update level status
+        this.level.update(time, playerX, playerZ);
     }
     
     /**
@@ -181,24 +191,26 @@ public class Render3D extends Render
      */
     public void renderWalls(final Textures textures)
     {
-        //reset our buffer to 0
+        //reset our wall depth buffer to 0
         for (int x=0; x < zBufferWall.length; x++)
         {
             this.zBufferWall[x] = 0;
         }
         
-        //get player current position
-        final int currentX = (int)(right/16);
-        final int currentZ = (int)(forward/16);
+        //we do we start and end
+        int startX = playerX - renderRange;
+        int endX = playerX + renderRange;
+        int startZ = playerZ - renderRange;
+        int endZ = playerZ + renderRange;
         
         //check blocks in render range
-        for (int xBlock = currentX - renderRange; xBlock < currentX + renderRange; xBlock++)
+        for (int xBlock = startX; xBlock < endX; xBlock++)
         {
             //stay in bounds
             if (xBlock < 0 || xBlock >= level.getCols() || !hasRangeX(xBlock))
                 continue;
             
-            for (int zBlock = currentZ - renderRange; zBlock < currentZ + renderRange; zBlock++)
+            for (int zBlock = startZ; zBlock < endZ; zBlock++)
             {
                 //stay in bounds
                 if (zBlock < 0 || zBlock >= level.getRows() || !hasRangeZ(zBlock))
@@ -215,24 +227,110 @@ public class Render3D extends Render
                 {
                     //draw west wall
                     if (!east.isSolid())
-                        renderWall(xBlock + extra, xBlock + extra, zBlock, zBlock + extra, 0.5, textures.getTexture(block.getEast()));
-
+                    {
+                        if (block.isDoor())
+                        {
+                            //get progress for animation
+                            float progress = getProgress(block);
+                            
+                            //increase depth for the door
+                            renderWall(xBlock + extra - .5, xBlock + extra - .5, zBlock + (extra * progress), zBlock + extra + (extra * progress), 0.5, textures.getTexture(block.getEast()));
+                        }
+                        else
+                        {
+                            renderWall(xBlock + extra, xBlock + extra, zBlock, zBlock + extra, 0.5, textures.getTexture(block.getEast()));
+                        }
+                    }
+                    else
+                    {
+                        if (block.isDoor())
+                            renderWall(xBlock + extra, xBlock + extra, zBlock + extra, zBlock, 0.5, textures.getTexture(east.getWest()));
+                        
+                        //draw side wall of door
+                        if (east.isDoor())
+                            renderWall(xBlock + extra, xBlock + extra, zBlock, zBlock + extra, 0.5, textures.getTexture(block.getEast()));
+                    }
+                    
                     //draw north wall
                     if (!south.isSolid())
-                        renderWall(xBlock + extra, xBlock, zBlock + extra, zBlock + extra, 0.5, textures.getTexture(block.getSouth()));
+                    {
+                        if (block.isDoor())
+                        {
+                            //get progress for animation
+                            float progress = getProgress(block);
+                            
+                            //increase depth for the door
+                            renderWall(xBlock + extra + (extra * progress), xBlock + (extra * progress), zBlock + extra - .5, zBlock + extra - .5, 0.5, textures.getTexture(block.getSouth()));
+                        }
+                        else
+                        {
+                            renderWall(xBlock + extra, xBlock, zBlock + extra, zBlock + extra, 0.5, textures.getTexture(block.getSouth()));
+                        }
+                    }
+                    else
+                    {
+                        if (block.isDoor())
+                            renderWall(xBlock, xBlock + extra, zBlock + extra, zBlock + extra, 0.5, textures.getTexture(south.getNorth()));
+                        
+                        //draw side wall of door
+                        if (south.isDoor())
+                            renderWall(xBlock + extra, xBlock, zBlock + extra, zBlock + extra, 0.5, textures.getTexture(block.getSouth()));
+                    }
                 }
                 else
                 {
                     //draw east wall
                     if (east.isSolid())
-                        renderWall(xBlock + extra, xBlock + extra, zBlock + extra, zBlock, 0.5, textures.getTexture(east.getWest()));
+                    {
+                        if (east.isDoor())
+                        {
+                            //get progress for animation
+                            float progress = getProgress(east);
+                            
+                            //increase depth for the door
+                            renderWall(xBlock + extra + .5, xBlock + extra + .5, zBlock + extra + (extra * progress), zBlock + (extra * progress), 0.5, textures.getTexture(east.getWest()));
+                        }
+                        else
+                        {
+                            renderWall(xBlock + extra, xBlock + extra, zBlock + extra, zBlock, 0.5, textures.getTexture(east.getWest()));
+                        }
+                    }
                     
                     //draw south wall
                     if (south.isSolid())
-                        renderWall(xBlock, xBlock + extra, zBlock + extra, zBlock + extra, 0.5, textures.getTexture(south.getNorth()));
+                    {
+                        if (south.isDoor())
+                        {
+                            //get progress for animation
+                            float progress = getProgress(south);
+                            
+                            //increase depth for the door
+                            renderWall(xBlock + (extra * progress), xBlock + extra + (extra * progress), zBlock + extra + .5, zBlock + extra + .5, 0.5, textures.getTexture(south.getNorth()));
+                        }
+                        else
+                        {
+                            renderWall(xBlock, xBlock + extra, zBlock + extra, zBlock + extra, 0.5, textures.getTexture(south.getNorth()));
+                        }
+                    }
                 }
             }
         }
+    }
+    
+    private float getProgress(final Block block)
+    {
+        float progress = 0f;
+
+        if (block.getDoor().isClosed())
+            progress = 0f;
+        if (block.getDoor().isOpen())
+            progress = 1f;
+        if (block.getDoor().isClosing())
+            progress = 1f - block.getDoor().getProgress();
+        if (block.getDoor().isOpening())
+            progress = block.getDoor().getProgress();
+        
+        return progress;
     }
     
     /**
@@ -341,6 +439,7 @@ public class Render3D extends Render
                 
                 final int index = xp + yp * getWidth();
                 
+                //if the pixel is closer than the one than our zBuffer
                 if (zBuffer[index] > rotZ)
                 {
                     //get the color of a specific pixel
@@ -526,6 +625,16 @@ public class Render3D extends Render
     {
         for (int i=0; i < getPixels().length; i++)
         {
+            /*
+            int color = getPixels()[i];
+            
+            int r = (color >> 16) & 0xff;
+            int g = (color >> 8) & 0xff;
+            int b = (color) & 0xff;
+            
+            getPixels()[i] = r << 16 | g << 8 | b;
+            */
+            
             int color = getPixels()[i];
             
             //the zBuffer contains the depth of objects which will help us determine the brightness

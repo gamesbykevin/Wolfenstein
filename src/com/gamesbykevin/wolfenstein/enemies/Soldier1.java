@@ -12,7 +12,7 @@ public final class Soldier1 extends Enemy
         super();
         
         //default delay for now
-        final long delay = Timers.toNanoSeconds(350L);
+        final long delay = Timers.toNanoSeconds(250L);
         
         //add idle animation
         super.addAnimation(State.Idle, 1, 0, delay, true);
@@ -28,5 +28,14 @@ public final class Soldier1 extends Enemy
         
         //add death animation
         super.addAnimation(State.Death, 4, 4, delay, false);
+        
+        
+        
+        
+        
+        
+        
+        
+        super.getSpriteSheet().setCurrent(State.Walking);
     }
 }

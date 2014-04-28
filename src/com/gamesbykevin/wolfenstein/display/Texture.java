@@ -1,6 +1,7 @@
 package com.gamesbykevin.wolfenstein.display;
 
 import java.awt.image.BufferedImage;
+import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Rectangle;
 
@@ -12,6 +13,9 @@ public final class Texture extends Render
     
     //our wall texture image
     private BufferedImage bufferedImage;
+    
+    //our graphics object for drawing
+    private Graphics2D graphics;
     
     /**
      * 
@@ -31,7 +35,10 @@ public final class Texture extends Render
         super(WIDTH, HEIGHT);
         
         //create new buffered image
-        bufferedImage = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        this.bufferedImage = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        
+        //get our graphics object
+        this.graphics = bufferedImage.createGraphics();
     }
     
     /**
@@ -70,10 +77,10 @@ public final class Texture extends Render
     public void update(final Image image, final int x, final int y, final int width, final int height)
     {
         //clear pixel data
-        bufferedImage.createGraphics().clearRect(0, 0, WIDTH, HEIGHT);
+        graphics.clearRect(0, 0, WIDTH, HEIGHT);
         
         //write image to buffered image
-        bufferedImage.createGraphics().drawImage(image, 0, 0, WIDTH, HEIGHT, x, y, x + width, y + height, null);
+        graphics.drawImage(image, 0, 0, WIDTH, HEIGHT, x, y, x + width, y + height, null);
         
         //copy array data to temp pixels
         bufferedImage.getRGB(0, 0, WIDTH, HEIGHT, getPixels(), 0, WIDTH);

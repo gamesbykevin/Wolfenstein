@@ -51,7 +51,7 @@ public final class Screen3D extends Render
         resetPixelData();
         
         //set hero input first to do 3d rendering in perspective to where the player is located
-        render3d.update(engine.getManager().getPlayer().getInput());
+        render3d.update(engine.getManager().getPlayer().getInput(), engine.getMain().getTime());
         
         //draw floor/ceiling
         render3d.renderTopBottom(textures);
@@ -60,7 +60,7 @@ public final class Screen3D extends Render
         render3d.renderWalls(textures);
         
         //draw sprites/level-objects
-        final int xBlock = 5, zBlock = 5; 
+        final int xBlock = 5, zBlock = 10; 
         render3d.renderSprite(xBlock, 0, zBlock, 0, sprite.getPixels(), (int)sprite.getWidth(), (int)sprite.getHeight());
         
         //apply brightness to pixels based on depth

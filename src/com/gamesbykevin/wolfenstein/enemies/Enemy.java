@@ -33,6 +33,7 @@ public abstract class Enemy extends Sprite
         //create our sprite sheet
         super.createSpriteSheet();
         
+        //create new texture
         this.texture = new Texture();
     }
     
@@ -59,6 +60,7 @@ public abstract class Enemy extends Sprite
         //find our y coordinate
         final int y = row * DIMENSIONS;
         
+        //current count of animations added
         int count = 0;
         
         //add all frames to the animation
@@ -100,6 +102,10 @@ public abstract class Enemy extends Sprite
         return (State)super.getSpriteSheet().getCurrent();
     }
     
+    /**
+     * Get pixel data
+     * @return pixel array data representing the current image
+     */
     public int[] getPixels()
     {
         return this.texture.getPixels();

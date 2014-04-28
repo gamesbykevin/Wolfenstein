@@ -1,5 +1,7 @@
 package com.gamesbykevin.wolfenstein.level;
 
+import com.gamesbykevin.framework.util.*;
+
 import com.gamesbykevin.wolfenstein.display.Textures.Key;
 
 public class Block 
@@ -7,22 +9,39 @@ public class Block
     //this block is empty
     private boolean solid = false;
     
-    //this block is not a door by default
-    private boolean door;
+    //our door object
+    private Door door;
     
     //default solid block
     public static Block solidBlock = new SolidBlock(null, null, null, null, false);
     
+    //the texture for each side of the block
     private Key north, south, east, west;
     
-    public Block(final boolean door)
+    protected Block()
     {
-        setDoor(door);
     }
     
-    public Block()
+    /**
+     * Open the door, if this isn't a door nothing will happen
+     */
+    public void open()
     {
-        this(false);
+        //make sure this is a door
+        if (!isDoor())
+            return;
+        
+        //open door
+        door.open();
+    }
+    
+    /**
+     * Get the door instance
+     * @return null if this block isn't a door
+     */
+    public Door getDoor()
+    {
+        return this.door;
     }
     
     protected void setWest(final Key west)
@@ -45,14 +64,21 @@ public class Block
         this.south = south;
     }
     
-    protected void setDoor(final boolean door)
+    /**
+     * Create a door for this block
+     */
+    protected void createDoor()
     {
-        this.door = door;
+        this.door = new Door();
     }
     
+    /**
+     * Is this block a door?
+     * @return true if our door object is not null, false otherwise
+     */
     public boolean isDoor()
     {
-        return this.door;
+        return (this.door != null);
     }
     
     public boolean isSolid()

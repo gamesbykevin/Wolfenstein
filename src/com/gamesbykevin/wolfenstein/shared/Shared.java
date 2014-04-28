@@ -30,7 +30,7 @@ public final class Shared
     public static boolean HIDE_MOUSE = true;
     
     //how many updates per second, controls speed of game
-    public static final int DEFAULT_UPS = 60;
+    public static final int DEFAULT_UPS = 30;
     
     //what is the name of our game
     public static final String GAME_NAME = "Wolfenstein";

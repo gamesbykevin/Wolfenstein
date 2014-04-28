@@ -27,12 +27,22 @@ public class SolidBlock extends Block
      */
     public SolidBlock(final Key north, final Key south, final Key east, final Key west, final boolean door)
     {
+        //call to default constructor
+        super();
+        
+        //yes the block will be solid
+        super.setSolid(true);
+        
+        //if this is a door create one
+        if (door)
+        {
+            super.createDoor();
+        }
+        
+        //set the texture key's for each side of the walls
         setEast(east);
         setWest(west);
         setNorth(north);
         setSouth(south);
-        
-        super.setDoor(door);
-        super.setSolid(true);
     }
 }
