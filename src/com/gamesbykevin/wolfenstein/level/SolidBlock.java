@@ -1,31 +1,22 @@
 package com.gamesbykevin.wolfenstein.level;
 
-import com.gamesbykevin.wolfenstein.display.Textures.Key;
-
 public class SolidBlock extends Block
 {
     /**
-     * Create a new solid block with the specified wall texture for each side.<br>
-     * This block will not be a door
-     * @param north Texture for the north wall
-     * @param south Texture for the south wall
-     * @param east Texture for the east wall
-     * @param west Texture for the west wall
+     * Create a new solid block.<br>
+     * This block will not be a door or a secret.
      */
-    public SolidBlock(final Key north, final Key south, final Key east, final Key west)
+    public SolidBlock()
     {
-        this(north, south, east, west, false);
+        this(false, false);
     }
     
     /**
-     * Create a new solid block with the specified wall texture for each side
-     * @param north Texture for the north wall
-     * @param south Texture for the south wall
-     * @param east Texture for the east wall
-     * @param west Texture for the west wall
+     * Create a new solid block.<br>
      * @param door Is this block a door
+     * @param secret Is this door a secret
      */
-    public SolidBlock(final Key north, final Key south, final Key east, final Key west, final boolean door)
+    public SolidBlock(final boolean door, final boolean secret)
     {
         //call to default constructor
         super();
@@ -33,16 +24,10 @@ public class SolidBlock extends Block
         //yes the block will be solid
         super.setSolid(true);
         
-        //if this is a door create one
-        if (door)
+        //if this is a door create one, and if this is a secret it is definitely a door
+        if (door || secret)
         {
-            super.createDoor();
+            super.createDoor(secret);
         }
-        
-        //set the texture key's for each side of the walls
-        setEast(east);
-        setWest(west);
-        setNorth(north);
-        setSouth(south);
     }
 }

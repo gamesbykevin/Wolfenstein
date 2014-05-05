@@ -9,6 +9,7 @@ import com.gamesbykevin.wolfenstein.engine.Engine;
 import com.gamesbykevin.wolfenstein.hero.Hero;
 import com.gamesbykevin.wolfenstein.display.Texture;
 import com.gamesbykevin.wolfenstein.display.Textures;
+import com.gamesbykevin.wolfenstein.level.Level;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu.LayerKey;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu.OptionKey;
@@ -21,6 +22,7 @@ import java.awt.Rectangle;
 import java.awt.image.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 /**
  * The parent class that contains all of the game elements
@@ -37,10 +39,14 @@ public final class Manager implements IManager
     //our player in the game
     private Hero player;
     
+    //the object containing the level info
+    private Level level;
+    
     //private Texture wall, floor, ceiling;
     
     private Enemy soldier;
     
+    //wall textures
     private Textures textures;
     
     /**
@@ -53,10 +59,16 @@ public final class Manager implements IManager
         //calculate the game window where game play will occur
         this.window = new Rectangle(engine.getMain().getScreen());
         
+        int startCol = 4;
+        int startRow = 4;
+        
         this.player = new Hero();
-        this.player.setLocation(80, 80);
-               
+        this.player.setLocation(startCol * 16, startRow * 16);
+        
         this.textures = new Textures(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage));
+        
+        //create a new level
+        this.createLevel(3, 3, 9, 9, engine.getRandom());
         
         //create new texture and set pixel data array
         //this.wall = new Texture();
@@ -96,6 +108,23 @@ public final class Manager implements IManager
     }
     
     /**
+     * Create a new level.
+     * @param roomCol The number of rooms
+     * @param roomRow The number of rooms
+     * @param eachRoomCol The size of each room
+     * @param eachRoomRow The size of each room
+     * @throws Exception 
+     */
+    private void createLevel(final int roomCol, final int roomRow, final int eachRoomCol, final int eachRoomRow, final Random random) throws Exception
+    {
+        if (eachRoomRow % 2 == 0 || eachRoomCol % 2 == 0 || eachRoomRow != eachRoomCol)
+            throw new Exception("Each room must have the same amount of rows and columns and that number must be odd");
+        
+        //create a new level
+        this.level = new Level(roomCol, roomRow, eachRoomCol, eachRoomRow, random);
+    }
+    
+    /**
      * Get the game window
      * @return The Rectangle where game play will take place
      */
@@ -104,9 +133,19 @@ public final class Manager implements IManager
         return this.window;
     }
     
+    public Textures getTextures()
+    {
+        return this.textures;
+    }
+    
     public Hero getPlayer()
     {
-        return player;
+        return this.player;
+    }
+    
+    public Level getLevel()
+    {
+        return this.level;
     }
     
     /**
@@ -130,11 +169,14 @@ public final class Manager implements IManager
         //update our player object
         player.update(engine);
         
+        //update level status
+        level.update(engine.getMain().getTime(), player.getInput().getPlayerX(), player.getInput().getPlayerZ());
+        
         //update soldier animation
         soldier.update(engine.getMain().getTime());
         
         //write our 3d screen objects etc.. to pixel array
-        screen.renderPixelData(engine, textures, soldier);
+        screen.renderPixelData(engine, soldier);
     }
     
     /**

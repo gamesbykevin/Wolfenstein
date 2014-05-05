@@ -1,27 +1,26 @@
 package com.gamesbykevin.wolfenstein.level;
 
+import com.gamesbykevin.framework.resources.Disposable;
+
 import com.gamesbykevin.framework.util.Timer;
 import com.gamesbykevin.framework.util.Timers;
 
-public class Door 
+public final class Door implements Disposable
 {
     //timer used for animation
     private Timer timer;
     
-    //keep the door open for 5 seconds
-    private static final long DURATION_OPEN = Timers.toNanoSeconds(5000L);
+    //keep the door open for this duration once the player moves away from the door
+    private static final long DURATION_OPEN = Timers.toNanoSeconds(1500L);
     
-    //it will take 2 seconds for the door to open and close
-    private static final long DURATION_CHANGING = Timers.toNanoSeconds(2000L);
+    //it will take 2 seconds for the door to close
+    private static final long DURATION_CLOSING = Timers.toNanoSeconds(2000L);
     
-    protected Door()
-    {
-        //create new timer
-        timer = new Timer();
-        
-        //default to closed
-        setState(State.CLOSED);
-    }
+    //it will take 2 seconds for the door to close
+    private static final long DURATION_OPENING = Timers.toNanoSeconds(1000L);
+    
+    //is this a secret door
+    private boolean secret = false;
     
     /**
      * Possible scenarios for the door
@@ -33,6 +32,40 @@ public class Door
     
     //the state of the door
     private State state;
+    
+    protected Door()
+    {
+        //create new timer
+        timer = new Timer();
+        
+        //default to closed
+        setState(State.CLOSED);
+    }
+    
+    @Override
+    public void dispose()
+    {
+        timer = null;
+        state = null;
+    }
+    
+    /**
+     * Set the door hidden/secret
+     * @param secret true if this door a hidden/secret, false otherwise
+     */
+    public void setSecret(final boolean secret)
+    {
+        this.secret = secret;
+    }
+    
+    /**
+     * Is this door a secret
+     * @return true if this is a hidden door, false otherwise
+     */
+    public boolean isSecret()
+    {
+        return this.secret;
+    }
     
     /**
      * The door will only be opened if it is closed, else nothing happens
@@ -48,20 +81,12 @@ public class Door
                 setState(State.OPENING);
                 
                 //set the appropriate time
-                timer.setReset(DURATION_CHANGING);
+                timer.setReset(DURATION_OPENING);
                 
                 //reset timer
                 timer.reset();
                 break;
         }
-    }
-    
-    /**
-     * Force the door open
-     */
-    protected void forceOpen()
-    {
-        setState(State.OPEN);
     }
     
     /**
@@ -142,7 +167,7 @@ public class Door
                     setState(State.CLOSING);
                     
                     //set the timer countdown to how long it will take to close
-                    timer.setReset(DURATION_CHANGING);
+                    timer.setReset(DURATION_CLOSING);
                     
                     //reset timer
                     timer.reset();

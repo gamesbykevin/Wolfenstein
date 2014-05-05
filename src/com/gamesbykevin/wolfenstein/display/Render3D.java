@@ -26,14 +26,17 @@ public class Render3D extends Render
     private final double floorPosition  = 8;
     private final double ceilingPostion = 8;
     
+    //when rendering a door adjust depth for doors
+    private final double doorDepth = 0.5;
+    
+    //when rendering a door adjust depth for secret just a little so the door is not drawn over the walls
+    private final double doorSecretDepth = 0.01;    
+    
     //the number of blocks the object needs to be within range in order to be rendered
-    private final int renderRange = 45;
+    private final int renderRange = 40;
     
     //temporary texture object
     private Texture tmpTexture;
-    
-    //our current level
-    public Level level;
     
     //store hero input variables because all 3d objects will be rendered around the hero
     private double forward, right, up, walking, sine, cosine, rotation;
@@ -51,15 +54,6 @@ public class Render3D extends Render
         
         this.zBuffer = new double[width * height];
         this.zBufferWall = new double[width];
-        
-        final int roomCol = 3;
-        final int roomRow = 3;
-        
-        //each room has a certain number of columns and rows
-        final int eachRoomCol = 11;
-        final int eachRoomRow = 11;
-        
-        this.level = new Level(roomCol, roomRow, eachRoomCol, eachRoomRow);
     }
     
     /**
@@ -68,7 +62,7 @@ public class Render3D extends Render
      * @param input Hero input object
      * @param time The time to deduct per update (nano-seconds)
      */
-    public void update(final Input input, final long time)
+    public void update(final Input input)
     {
         //negative value would move backward
         forward  = input.getZ();
@@ -96,9 +90,6 @@ public class Render3D extends Render
         
         isWalking = input.isWalking();
         isRunning = input.isRunning();
-        
-        //update level status
-        this.level.update(time, playerX, playerZ);
     }
     
     /**
@@ -189,7 +180,7 @@ public class Render3D extends Render
     /**
      * Draw our walls
      */
-    public void renderWalls(final Textures textures)
+    public void renderWalls(final Textures textures, final Level level)
     {
         //reset our wall depth buffer to 0
         for (int x=0; x < zBufferWall.length; x++)
@@ -198,10 +189,10 @@ public class Render3D extends Render
         }
         
         //we do we start and end
-        int startX = playerX - renderRange;
-        int endX = playerX + renderRange;
-        int startZ = playerZ - renderRange;
-        int endZ = playerZ + renderRange;
+        final int startX = playerX - renderRange;
+        final int endX = playerX + renderRange;
+        final int startZ = playerZ - renderRange;
+        final int endZ = playerZ + renderRange;
         
         //check blocks in render range
         for (int xBlock = startX; xBlock < endX; xBlock++)
@@ -233,8 +224,16 @@ public class Render3D extends Render
                             //get progress for animation
                             float progress = getProgress(block);
                             
-                            //increase depth for the door
-                            renderWall(xBlock + extra - .5, xBlock + extra - .5, zBlock + (extra * progress), zBlock + extra + (extra * progress), 0.5, textures.getTexture(block.getEast()));
+                            if (!block.getDoor().isSecret())
+                            {
+                                //increase depth for the door
+                                renderWall(xBlock + extra - doorDepth, xBlock + extra - doorDepth, zBlock + (extra * progress), zBlock + extra + (extra * progress), 0.5, textures.getTexture(block.getEast()));
+                            }
+                            else
+                            {
+                                //increase depth very little
+                                renderWall(xBlock + extra - doorSecretDepth, xBlock + extra - doorSecretDepth, zBlock + (extra * progress), zBlock + extra + (extra * progress), 0.5, textures.getTexture(block.getEast()));
+                            }
                         }
                         else
                         {
@@ -259,8 +258,16 @@ public class Render3D extends Render
                             //get progress for animation
                             float progress = getProgress(block);
                             
-                            //increase depth for the door
-                            renderWall(xBlock + extra + (extra * progress), xBlock + (extra * progress), zBlock + extra - .5, zBlock + extra - .5, 0.5, textures.getTexture(block.getSouth()));
+                            if (!block.getDoor().isSecret())
+                            {
+                                //increase depth for the door
+                                renderWall(xBlock + extra + (extra * progress), xBlock + (extra * progress), zBlock + extra - doorDepth, zBlock + extra - doorDepth, 0.5, textures.getTexture(block.getSouth()));
+                            }
+                            else
+                            {
+                                //increase depth very little
+                                renderWall(xBlock + extra + (extra * progress), xBlock + (extra * progress), zBlock + extra - doorSecretDepth, zBlock + extra - doorSecretDepth, 0.5, textures.getTexture(block.getSouth()));
+                            }
                         }
                         else
                         {
@@ -269,6 +276,7 @@ public class Render3D extends Render
                     }
                     else
                     {
+                        //draw side wall of door
                         if (block.isDoor())
                             renderWall(xBlock, xBlock + extra, zBlock + extra, zBlock + extra, 0.5, textures.getTexture(south.getNorth()));
                         
@@ -287,8 +295,16 @@ public class Render3D extends Render
                             //get progress for animation
                             float progress = getProgress(east);
                             
-                            //increase depth for the door
-                            renderWall(xBlock + extra + .5, xBlock + extra + .5, zBlock + extra + (extra * progress), zBlock + (extra * progress), 0.5, textures.getTexture(east.getWest()));
+                            if (!east.getDoor().isSecret())
+                            {
+                                //increase depth for the door
+                                renderWall(xBlock + extra + doorDepth, xBlock + extra + doorDepth, zBlock + extra + (extra * progress), zBlock + (extra * progress), 0.5, textures.getTexture(east.getWest()));
+                            }
+                            else
+                            {
+                                //increase depth very little
+                                renderWall(xBlock + extra + doorSecretDepth, xBlock + extra + doorSecretDepth, zBlock + extra + (extra * progress), zBlock + (extra * progress), 0.5, textures.getTexture(east.getWest()));
+                            }
                         }
                         else
                         {
@@ -304,8 +320,16 @@ public class Render3D extends Render
                             //get progress for animation
                             float progress = getProgress(south);
                             
-                            //increase depth for the door
-                            renderWall(xBlock + (extra * progress), xBlock + extra + (extra * progress), zBlock + extra + .5, zBlock + extra + .5, 0.5, textures.getTexture(south.getNorth()));
+                            if (!south.getDoor().isSecret())
+                            {
+                                //increase depth for the door
+                                renderWall(xBlock + (extra * progress), xBlock + extra + (extra * progress), zBlock + extra + .5, zBlock + extra + .5, 0.5, textures.getTexture(south.getNorth()));
+                            }
+                            else
+                            {
+                                //increase depth very little
+                                renderWall(xBlock + (extra * progress), xBlock + extra + (extra * progress), zBlock + extra + doorSecretDepth, zBlock + extra + doorSecretDepth, 0.5, textures.getTexture(south.getNorth()));
+                            }
                         }
                         else
                         {
@@ -317,10 +341,21 @@ public class Render3D extends Render
         }
     }
     
+    /**
+     * Get the progress of the door timer towards completion.<br>
+     * If not a door then 0 will be returned.
+     * @param block The block we want to check
+     * @return percent complete ranging from 0.0 - 1.0 (0% - 100%)
+     */
     private float getProgress(final Block block)
     {
+        
         float progress = 0f;
-
+        
+        //if not a door there has been no progress
+        if (!block.isDoor())
+            return progress;
+        
         if (block.getDoor().isClosed())
             progress = 0f;
         if (block.getDoor().isOpen())

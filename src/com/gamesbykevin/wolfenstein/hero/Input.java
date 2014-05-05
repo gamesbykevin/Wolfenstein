@@ -73,7 +73,7 @@ public final class Input extends Sprite
         
     }
     
-    public void update(final Keyboard keyboard, final Level level)
+    public void update(final Keyboard keyboard, final Level level) throws Exception
     {
         int xMove = 0;
         int zMove = 0;
@@ -130,10 +130,20 @@ public final class Input extends Sprite
         //    count++;
         
         if (left)
+        {
             xMove--;
+            
+            //if we are strafing we can't run
+            setRunning(false);
+        }
         
         if (right)
+        {
             xMove++;
+            
+            //if we are strafing we can't run
+            setRunning(false);
+        }
         
         if (turnLeft)
             rotationa -= rotationSpeed;
@@ -232,18 +242,24 @@ public final class Input extends Sprite
             //temp block object
             Block block;
             
+            //check any blocks within this range
             final int distance = 2;
 
-            //now check all blocks around the player
+            //now check all blocks surrounding the player
             for (int x = -distance; x <= distance; x++)
             {
                 for (int z = -distance; z <= distance; z++)
                 {
+                    //get the current block
                     block = level.get(originalX + x, originalZ + z);
 
                     //if this block is a door then open
                     if (block.isDoor())
                         block.open();
+                    
+                    //if we have selected the goal mark the level as complete
+                    if (block.isGoal())
+                        level.markComplete();
                 }
             }
         }

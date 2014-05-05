@@ -1,18 +1,32 @@
 package com.gamesbykevin.wolfenstein.level;
 
+import com.gamesbykevin.framework.base.Cell;
 import com.gamesbykevin.framework.labyrinth.*;
 import com.gamesbykevin.framework.labyrinth.Location.Wall;
+import com.gamesbykevin.framework.resources.Disposable;
+
 import com.gamesbykevin.wolfenstein.display.Textures.Key;
 
-public final class Level 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+public final class Level extends BlockManager implements Disposable
 {
-    public Block[][] blocks;
-    
     //the overall maze of the level, each cell will represent a room
     private Labyrinth maze;
     
-    //the dimensions of each room
-    private final int roomColumns, roomRows;
+    //the wall where the goal switch is located
+    private Wall wallGoal;
+    
+    //what is the limit of secrets and the current count
+    private int secretLimit;
+    
+    //a list containing all of the secrets in the level
+    private List<Cell> secrets;
+    
+    //has the switch been hit
+    private boolean complete = false;
     
     /**
      * The different options for each border in each room
@@ -33,62 +47,448 @@ public final class Level
      * @param roomRows The total number of rows for each room
      * @throws Exception 
      */
-    public Level(final int columns, final int rows, final int roomColumns, final int roomRows) throws Exception
+    public Level(final int columns, final int rows, final int roomColumns, final int roomRows, final Random random) throws Exception
     {
-        this.roomColumns = roomColumns;
-        this.roomRows    = roomRows;
+        super(columns, rows, roomColumns, roomRows);
+        
+        //the number of maximum secrets allowed will be half the number of columns
+        this.secretLimit = (columns / 2);
+        
+        //create new list
+        this.secrets = new ArrayList<>();
+        
+        //pick a random maze generation algorithm
+        Labyrinth.Algorithm algorithm = Labyrinth.Algorithm.values()[random.nextInt(Labyrinth.Algorithm.values().length)];
         
         //generate our overall maze, each cell in this maze will represent a room
-        this.maze = new Labyrinth(columns, rows, Labyrinth.Algorithm.Sidewinder);
+        this.maze = new Labyrinth(columns, rows, algorithm);
         this.maze.setStart(0, 0);
         this.maze.generate();
         
-        //create all of the blocks for all of the levels
-        this.blocks  = new Block[roomRows * rows][roomColumns * columns];
+        //locate the goal for our maze
+        locateGoal();
         
-        //temp locations
+        //first we will enclose all rooms with walls
+        createWalls(random);
+        
+        //make the goal room a room
+        createGoalRoom();
+        
+        //add secret rooms to our maze
+        createSecrets(random);
+        
+        //anything remaining that is null will be an empty block
+        fill();
+        
+        //now set the wall textures for the rooms
+        assignTextures();
+    }
+    
+    @Override
+    public void dispose()
+    {
+        maze.dispose();
+        maze = null;
+        
+        wallGoal = null;
+        
+        secrets.clear();
+        secrets = null;
+        
+        super.dispose();
+    }
+    
+    /**
+     * Locate the room where the goal switch will be as well as the wall where the switch will be placed
+     * @throws Exception 
+     */
+    private void locateGoal() throws Exception
+    {
+        //the cost to reach the specific location
+        int cost = 0;
+        
+        //temp variable
+        Location tmp;
+        
+        for (int row = 0; row < maze.getRows(); row++)
+        {
+            for (int column = 0; column < maze.getCols(); column++)
+            {
+                //get the current location
+                tmp = maze.getLocation(column, row);
+                
+                //the location with the highest cost will be the goal
+                if (tmp.getCost() >= cost)
+                {
+                    //set the new cost limit
+                    cost = tmp.getCost();
+                    
+                    //now we have a new goal set the finish
+                    this.maze.setFinish(column, row);
+                    
+                    //locate the side where the goal switch will be
+                    for (Wall wall : Wall.values())
+                    {
+                        if (tmp.hasWall(wall))
+                        {
+                            this.wallGoal = wall;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private void createSecrets(final Random random) throws Exception
+    {
+        //temporary locations
         Location tmp;
 
-        //first we will enclose all rooms with walls
-        for (int row = 0; row < rows; row++)
+        for (int row = 0; row < maze.getRows(); row++)
         {
-            for (int column = 0; column < columns; column++)
+            for (int column = 0; column < maze.getCols(); column++)
+            {
+                //if we reached our limit no need to continue
+                if (secrets.size() == this.secretLimit)
+                    return;
+                
+                //the secret room can't be the start or finish of the maze
+                if (maze.getFinish().equals(column, row) || maze.getStart().equals(column, row))
+                    continue;
+                
+                //get the current location
+                tmp = maze.getLocation(column, row);
+                
+                boolean secret = false;
+                
+                //there are 3 walls so this is a possible secret room
+                if (tmp.getWalls().size() == 3)
+                {
+                    //random choose if this door is a secret or not
+                    secret = random.nextBoolean();
+
+                    if (secret)
+                    {
+                        secrets.add(new Cell(column, row));
+
+                        for (Wall wall : Wall.values())
+                        {
+                            if (!tmp.hasWall(wall))
+                            {
+                                changeBorder(column, row, wall, State.Door, secret);
+                                
+                                switch(wall)
+                                {
+                                    case North:
+                                        changeBorder(column, row-1, Wall.South, State.Door, secret);
+                                        break;
+                                        
+                                    case South:
+                                        changeBorder(column, row+1, Wall.North, State.Door, secret);
+                                        break;
+                                        
+                                    case West:
+                                        changeBorder(column-1, row, Wall.East, State.Door, secret);
+                                        break;
+                                        
+                                    case East:
+                                        changeBorder(column+1, row, Wall.West, State.Door, secret);
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private void createWalls(final Random random) throws Exception
+    {
+        //temporary locations
+        Location tmp;
+
+        for (int row = 0; row < maze.getRows(); row++)
+        {
+            for (int column = 0; column < maze.getCols(); column++)
             {
                 tmp = maze.getLocation(column, row);
+                
+                //determine if we are to open the wall or create a door
+                State state = (random.nextBoolean()) ? State.Open : State.Door;
                 
                 //close the borders that are walls
                 for (Wall wall : Wall.values())
                 {
                     if (tmp.hasWall(wall))
-                        changeBorder(column, row, wall, State.Closed);
-                }
-                
-                //for right now we determine here where to open the wall or create a door
-                State state = (Math.random() > .5) ? State.Open : State.Door;
-                
-                if (!tmp.hasWall(Wall.South))
-                {
-                    changeBorder(column, row,     Wall.South, state);
-                    changeBorder(column, row + 1, Wall.North, State.Open);
-                }
-                
-                if (!tmp.hasWall(Wall.East))
-                {
-                    changeBorder(column,     row, Wall.East, state);
-                    changeBorder(column + 1, row, Wall.West, State.Open);
+                    {
+                        //add wall to this side
+                        changeBorder(column, row, wall, State.Closed, false);
+                    }
+                    else
+                    {
+                        //add opening or door to this side
+                        changeBorder(column, row, wall, state, false);
+                    }
                 }
             }
         }
-        
-        //if any remaining blocks are null create empty blocks
-        for (int row=0; row < blocks.length; row++)
+    }
+    
+    private void createGoalRoom() throws Exception
+    {
+        for (int row = 0; row < maze.getRows(); row++)
         {
-            for (int col=0; col < blocks[0].length; col++)
+            for (int column = 0; column < maze.getCols(); column++)
             {
-                if (blocks[row][col] == null)
-                    blocks[row][col] = new Block();
+                //we are only interested in the goal
+                if (!isGoal(column, row))
+                    continue;
+                
+                Location tmp = maze.getLocation(column, row);
+                
+                for (Wall wall : Wall.values())
+                {
+                    if (!tmp.hasWall(wall))
+                        changeBorder(column, row, wall, State.Door, false);
+                }
+                
+                //we found the goal room so no need to continue
+                return;
             }
         }
+    }
+    
+    private boolean isGoal(final int column, final int row) throws Exception
+    {
+        return this.maze.getFinish().equals(column, row);
+    }
+    
+    /**
+     * Assign textures to the solid blocks
+     * @throws Exception 
+     */
+    private void assignTextures() throws Exception
+    {
+        for (int row = 0; row < maze.getRows(); row++)
+        {
+            for (int column = 0; column < maze.getCols(); column++)
+            {
+                //set the textures for the walls in the room
+                for (Wall wall : Wall.values())
+                {
+                    setBorderTextures(column, row, wall, Key.Door1, Key.Cement1);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Set the wall textures for the specified side in the specified room
+     * @param column Used to identify the current room
+     * @param row Used to identify the current room
+     * @param wall Side we want to set the texture key
+     * @param doorKey Door texture key
+     * @param wallKey Wall texture key
+     */
+    private void setBorderTextures(final int column, final int row, final Wall wall, final Key doorKey, final Key wallKey) throws Exception
+    {
+        //is this room our goal and the wall where the goal switch will appear
+        final boolean isGoal = isGoal(column, row);
+        final boolean isGoalWall = (wall == this.wallGoal);
+        
+        for (int roomRow = 0; roomRow < getRoomRowTotal() + 1; roomRow++)
+        {
+            if (wall == Wall.North && roomRow != 0)
+                continue;
+            if (wall == Wall.South && roomRow != getRoomRowTotal())
+                continue;
+            
+            for (int roomColumn = 0; roomColumn < getRoomColumnTotal() + 1; roomColumn++)
+            {
+                if (wall == Wall.East && roomColumn != getRoomColumnTotal())
+                    continue;
+                if (wall == Wall.West && roomColumn != 0)
+                    continue;
+                
+                //calculate the current index
+                final int currentCol = (column * getRoomColumnTotal()) + roomColumn;
+                final int currentRow = (row    * getRoomRowTotal()) + roomRow;
+                
+                //get current block
+                final Block block = this.get(currentCol, currentRow);
+                
+                //only solid blocks will have textures
+                if (block.isSolid())
+                {
+                    //if this isn't the goal
+                    if (!isGoal)
+                    {
+                        //if any of the texture keys are set no need to continue
+                        if (block.getEast() != null || block.getWest()!= null)
+                            continue;
+                        if (block.getNorth()!= null || block.getSouth()!= null)
+                            continue;
+                    }
+                    
+                    //the different textures for each side
+                    Key n = null, s = null, e = null, w = null;
+                    
+                    switch(wall)
+                    {
+                        case North:
+                        case South:
+                            if (block.isDoor() && !block.getDoor().isSecret())
+                            {
+                                n = doorKey;
+                                s = doorKey;
+                                w = Key.DoorSide;
+                                e = Key.DoorSide;
+                                
+                                if (isGoal)
+                                {
+                                    n = Key.DoorGoal1;
+                                    s = Key.DoorGoal1;
+                                }
+                            }
+                            else
+                            {
+                                if (get(currentCol - 1, currentRow).isDoor() || get(currentCol + 1, currentRow).isDoor())
+                                {
+                                    w = Key.DoorSide;
+                                    e = Key.DoorSide;
+                                }
+                                else
+                                {
+                                    w = wallKey;
+                                    e = wallKey;
+                                }
+
+                                n = wallKey;
+                                s = wallKey;
+                                
+                                //if this is the wall where the switch will be
+                                if (isGoal && isGoalWall)
+                                {
+                                    //the switch will be in the middle of the wall
+                                    if (roomColumn == (int)(getRoomColumnTotal() / 2))
+                                    {
+                                        //mark this block as the goal
+                                        block.setGoal(true);
+                                        
+                                        if (wall == Wall.North)
+                                        {
+                                            n = wallKey;
+                                            s = Key.GoalSwitchOff;
+                                        }
+                                        else
+                                        {
+                                            n = Key.GoalSwitchOff;
+                                            s = wallKey;
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+
+                        case East:
+                        case West:
+                            if (block.isDoor() && !block.getDoor().isSecret())
+                            {
+                                n = Key.DoorSide;
+                                s = Key.DoorSide;
+                                w = doorKey;
+                                e = doorKey;
+                                
+                                if (isGoal)
+                                {
+                                    w = Key.DoorGoal1;
+                                    e = Key.DoorGoal1;
+                                }
+                            }
+                            else
+                            {
+                                if (get(currentCol, currentRow + 1).isDoor() || get(currentCol, currentRow - 1).isDoor())
+                                {
+                                    n = Key.DoorSide;
+                                    s = Key.DoorSide;
+                                }
+                                else
+                                {
+                                    n = wallKey;
+                                    s = wallKey;
+                                }
+                                
+                                w = wallKey;
+                                e = wallKey;
+                                
+                                //if this is the wall where the switch will be
+                                if (isGoal && isGoalWall)
+                                {
+                                    //the switch will be in the middle of the wall
+                                    if (roomRow == (int)(getRoomRowTotal() / 2))
+                                    {
+                                        //mark this block as the goal
+                                        block.setGoal(true);
+                                        
+                                        if (wall == Wall.West)
+                                        {
+                                            w = wallKey;
+                                            e = Key.GoalSwitchOff;
+                                        }
+                                        else
+                                        {
+                                            w = Key.GoalSwitchOff;
+                                            e = wallKey;
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                    }
+                    
+                    block.setNorth(n);
+                    block.setSouth(s);
+                    block.setEast(e);
+                    block.setWest(w);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Turn the switch on to show that the level has been solved
+     */
+    public void markComplete() throws Exception
+    {
+        for (int row=0; row < getRows(); row++)
+        {
+            for (int col=0; col < getCols(); col++)
+            {
+                Block block = this.get(col, row);
+                    
+                //if not the goal skip to next
+                if (!block.isGoal())
+                    continue;
+                
+                if (block.getWest() == Key.GoalSwitchOff)
+                    block.setWest(Key.GoalSwitchOn);
+                if (block.getEast() == Key.GoalSwitchOff)
+                    block.setEast(Key.GoalSwitchOn);
+                if (block.getNorth() == Key.GoalSwitchOff)
+                    block.setNorth(Key.GoalSwitchOn);
+                if (block.getSouth() == Key.GoalSwitchOff)
+                    block.setSouth(Key.GoalSwitchOn);
+                
+                this.complete = true;
+            }
+        }
+    }
+    
+    public boolean isComplete()
+    {
+        return this.complete;
     }
     
     /**
@@ -98,41 +498,43 @@ public final class Level
      * @param row The row of the overall maze
      * @param wall The wall we want to manipulate in the room
      * @param state Do we create a wall, leave open, or create a door
+     * @param secret If a door is being created is it a secret
      */
-    private void changeBorder(final int column, final int row, final Wall wall, final State state)
+    private void changeBorder(final int column, final int row, final Wall wall, final State state, final boolean secret)
     {
-        for (int roomRow = 0; roomRow < this.roomRows; roomRow++)
+        for (int roomRow = 0; roomRow < getRoomRowTotal() + 1; roomRow++)
         {
-            for (int roomColumn = 0; roomColumn < this.roomColumns; roomColumn++)
+            if (wall == Wall.North && roomRow != 0)
+                continue;
+            if (wall == Wall.South && roomRow != getRoomRowTotal())
+                continue;
+            
+            for (int roomColumn = 0; roomColumn < getRoomColumnTotal() + 1; roomColumn++)
             {
+                if (wall == Wall.East && roomColumn != getRoomColumnTotal())
+                    continue;
+                if (wall == Wall.West && roomColumn != 0)
+                    continue;
+                
                 //calculate the current index
-                final int currentCol = (column * this.roomColumns) + roomColumn;
-                final int currentRow = (row    * this.roomRows)    + roomRow;
+                final int currentCol = (column * getRoomColumnTotal()) + roomColumn;
+                final int currentRow = (row    * getRoomRowTotal())    + roomRow;
                 
                 switch(wall)
                 {
                     case North:
                         
-                        //if this is not the north row skip
-                        if (roomRow != 0)
-                            continue;
-                        
                         //we still want walls on the end
-                        if (roomColumn == 0 || roomColumn == this.roomColumns - 1)
+                        if (roomColumn == 0 || roomColumn == getRoomColumnTotal())
                         {
-                            blocks[currentRow][currentCol] = new SolidBlock(Key.HitlerPortrait4, Key.HitlerPortrait4, Key.HitlerPortrait4, Key.HitlerPortrait4);
+                            set(currentCol, currentRow, new SolidBlock());
                         }
                         else
                         {
                             switch(state)
                             {
-                                case Open:
-                                    //if open then create empty block
-                                    blocks[currentRow][currentCol] = new Block();
-                                    break;
-
                                 case Closed:
-                                    blocks[currentRow][currentCol] = new SolidBlock(Key.DoorMessage, Key.DoorMessage, Key.DoorMessage, Key.DoorMessage);
+                                    set(currentCol, currentRow, new SolidBlock());
                                     break;
                             }
                         }
@@ -140,38 +542,29 @@ public final class Level
 
                     case South:
                         
-                        //if this is not the south row skip
-                        if (roomRow != this.roomRows - 1)
-                            continue;
-                        
                         //we still want walls on the end
-                        if (roomColumn == 0 || roomColumn == this.roomColumns - 1)
+                        if (roomColumn == 0 || roomColumn == getRoomColumnTotal())
                         {
-                            blocks[currentRow][currentCol] = new SolidBlock(Key.HitlerPortrait4, Key.HitlerPortrait4, Key.HitlerPortrait4, Key.HitlerPortrait4);
+                            set(currentCol, currentRow, new SolidBlock());
                         }
                         else
                         {
                             switch(state)
                             {
-                                case Open:
-                                    //if open then create empty block
-                                    blocks[currentRow][currentCol] = new Block();
-                                    break;
-
                                 case Closed:
-                                    blocks[currentRow][currentCol] = new SolidBlock(Key.DoorMessage, Key.DoorMessage, Key.DoorMessage, Key.DoorMessage);
+                                    set(currentCol, currentRow, new SolidBlock());
                                     break;
 
                                 case Door:
-                                    if (roomColumn == this.roomColumns / 2 || roomRow == this.roomRows / 2)
+                                    if (roomColumn == getRoomColumnTotal() / 2 || roomRow == getRoomRowTotal() / 2)
                                     {
                                         //if this is the middle add a door
-                                        blocks[currentRow][currentCol] = new SolidBlock(Key.Door1, Key.Door1, Key.DoorSide, Key.DoorSide, true);
+                                        set(currentCol, currentRow, new SolidBlock(true, secret));
                                     }
                                     else
                                     {
                                         //everything else is a wall
-                                        blocks[currentRow][currentCol] = new SolidBlock(Key.Cement1, Key.Cement2, Key.DoorSide, Key.DoorSide);
+                                        set(currentCol, currentRow, new SolidBlock());
                                     }
                                     break;
                             }
@@ -180,26 +573,17 @@ public final class Level
 
                     case West:
                         
-                        //if this is not the west column skip
-                        if (roomColumn != 0)
-                            continue;
-                        
                         //we also want to avoid the end rows
-                        if (roomRow == 0 || roomRow == this.roomRows - 1)
+                        if (roomRow == 0 || roomRow == getRoomRowTotal())
                         {
-                            blocks[currentRow][currentCol] = new SolidBlock(Key.HitlerPortrait4, Key.HitlerPortrait4, Key.HitlerPortrait4, Key.HitlerPortrait4);
+                            set(currentCol, currentRow, new SolidBlock());
                         }
                         else
                         {
                             switch(state)
                             {
-                                case Open:
-                                    //if open then create empty block
-                                    blocks[currentRow][currentCol] = new Block();
-                                    break;
-
                                 case Closed:
-                                    blocks[currentRow][currentCol] = new SolidBlock(Key.DoorMessage, Key.DoorMessage, Key.DoorMessage, Key.DoorMessage);
+                                    set(currentCol, currentRow, new SolidBlock());
                                     break;
                             }
                         }
@@ -207,38 +591,29 @@ public final class Level
 
                     case East:
                         
-                        //if this is not the east column skip
-                        if (roomColumn != this.roomColumns - 1)
-                            continue;
-                        
                         //we also want to avoid the end rows
-                        if (roomRow == 0 || roomRow == this.roomRows - 1)
+                        if (roomRow == 0 || roomRow == getRoomRowTotal())
                         {
-                            blocks[currentRow][currentCol] = new SolidBlock(Key.HitlerPortrait4, Key.HitlerPortrait4, Key.HitlerPortrait4, Key.HitlerPortrait4);
+                            set(currentCol, currentRow, new SolidBlock());
                         }
                         else
                         {
                             switch(state)
                             {
-                                case Open:
-                                    //if open then create empty block
-                                    blocks[currentRow][currentCol] = new Block();
-                                    break;
-
                                 case Closed:
-                                    blocks[currentRow][currentCol] = new SolidBlock(Key.DoorMessage, Key.DoorMessage, Key.DoorMessage, Key.DoorMessage);
+                                    set(currentCol, currentRow, new SolidBlock());
                                     break;
 
                                 case Door:
-                                    if (roomColumn == this.roomColumns / 2 || roomRow == this.roomRows / 2)
+                                    if (roomColumn == getRoomColumnTotal() / 2 || roomRow == getRoomRowTotal() / 2)
                                     {
                                         //if this is the middle add a door
-                                        blocks[currentRow][currentCol] = new SolidBlock(Key.DoorSide, Key.DoorSide, Key.Door1, Key.Door1, true);
+                                        set(currentCol, currentRow, new SolidBlock(true, secret));
                                     }
                                     else
                                     {
                                         //everything else is a wall
-                                        blocks[currentRow][currentCol] = new SolidBlock(Key.DoorSide, Key.DoorSide, Key.Cement1, Key.Cement1);
+                                        set(currentCol, currentRow, new SolidBlock());
                                     }
                                     break;
                             }
@@ -247,38 +622,6 @@ public final class Level
                 }
             }
         }
-    }
-    
-    /**
-     * Get the total number of columns for the entire maze
-     * @return Total number of columns in complete maze
-     */
-    public int getCols()
-    {
-        return this.blocks[0].length;
-    }
-    
-    /**
-     * Get the total number of rows for the entire maze
-     * @return Total number of rows in complete maze
-     */
-    public int getRows()
-    {
-        return this.blocks.length;
-    }
-    
-    public Block get(final double column, final double row)
-    {
-        return get((int)column, (int)row);
-    }
-    
-    public Block get(final int column, final int row)
-    {
-        //if the index is out of bounds return a default solid block
-        if (column < 0 || column >= blocks[0].length || row < 0 || row >= blocks.length)
-            return Block.solidBlock;
-        
-        return blocks[row][column];
     }
     
     /**
@@ -291,11 +634,10 @@ public final class Level
     {
         final int distance = 2;
         
-        for (int row=0; row < blocks.length; row++)
+        for (int row=0; row < super.getRows(); row++)
         {
-            for (int col=0; col < blocks[0].length; col++)
+            for (int col=0; col < super.getCols(); col++)
             {
-                
                 //get current block
                 final Block b = get(col, row);
                 

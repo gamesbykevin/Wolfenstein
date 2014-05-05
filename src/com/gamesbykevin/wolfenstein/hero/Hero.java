@@ -25,6 +25,6 @@ public final class Hero
     
     public void update(final Engine engine) throws Exception
     {
-        getInput().update(engine.getKeyboard(), engine.getManager().screen.render3d.level);
+        getInput().update(engine.getKeyboard(), engine.getManager().getLevel());
     }
 }

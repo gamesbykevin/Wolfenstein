@@ -45,19 +45,19 @@ public final class Screen3D extends Render
     /**
      * Write pixel data to array for anything 3d: (walls/floor/ceiling/enemies/level-objects)
      */
-    public void renderPixelData(final Engine engine, final Textures textures, final Enemy sprite) throws Exception
+    public void renderPixelData(final Engine engine, final Enemy sprite) throws Exception
     {
         //reset pixel data
         resetPixelData();
         
         //set hero input first to do 3d rendering in perspective to where the player is located
-        render3d.update(engine.getManager().getPlayer().getInput(), engine.getMain().getTime());
+        render3d.update(engine.getManager().getPlayer().getInput());
         
         //draw floor/ceiling
-        render3d.renderTopBottom(textures);
+        render3d.renderTopBottom(engine.getManager().getTextures());
         
         //draw walls
-        render3d.renderWalls(textures);
+        render3d.renderWalls(engine.getManager().getTextures(), engine.getManager().getLevel());
         
         //draw sprites/level-objects
         final int xBlock = 5, zBlock = 10; 
