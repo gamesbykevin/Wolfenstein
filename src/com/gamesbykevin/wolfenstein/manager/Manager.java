@@ -2,6 +2,7 @@ package com.gamesbykevin.wolfenstein.manager;
 
 import com.gamesbykevin.wolfenstein.display.Screen3D;
 import com.gamesbykevin.framework.menu.Menu;
+import com.gamesbykevin.framework.resources.FontManager;
 import com.gamesbykevin.framework.util.*;
 
 import com.gamesbykevin.wolfenstein.enemies.*;
@@ -13,11 +14,15 @@ import com.gamesbykevin.wolfenstein.level.Level;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu.LayerKey;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu.OptionKey;
-import com.gamesbykevin.wolfenstein.resources.GameImage;
+import com.gamesbykevin.wolfenstein.resources.GameAudio;
+import com.gamesbykevin.wolfenstein.resources.GameFont;
+import com.gamesbykevin.wolfenstein.resources.GameImages;
+import com.gamesbykevin.wolfenstein.resources.Resources;
 
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.image.*;
 import java.util.ArrayList;
@@ -49,6 +54,18 @@ public final class Manager implements IManager
     //wall textures
     private Textures textures;
     
+    //object that will contain all fonts for the game
+    private FontManager fonts;
+    
+    //unique keys for each font
+    private enum FontKey 
+    {
+        GameFont
+    }
+    
+    //the default font size
+    private static final float DEFAULT_FONT_SIZE = 24;
+    
     /**
      * Constructor for Manager, this is the point where we load any menu option configurations
      * @param engine
@@ -59,16 +76,31 @@ public final class Manager implements IManager
         //calculate the game window where game play will occur
         this.window = new Rectangle(engine.getMain().getScreen());
         
+        //create container for game font
+        this.fonts = new FontManager(Resources.XML_CONFIG_GAME_FONT);
+        
+        //load all font resources
+        while (!fonts.isComplete())
+        {
+            fonts.update(engine.getMain().getContainerClass());
+        }
+        
+        //verify everything is specified
+        fonts.verifyLocations(GameFont.Keys.values());
+        
+        //now update the Font with the new Font size
+        fonts.set(GameFont.Keys.GameFont, fonts.get(GameFont.Keys.GameFont).deriveFont(DEFAULT_FONT_SIZE));
+        
         int startCol = 4;
         int startRow = 4;
         
         this.player = new Hero();
         this.player.setLocation(startCol * 16, startRow * 16);
         
-        this.textures = new Textures(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage));
+        this.textures = new Textures(engine.getResources().getGameImage(GameImages.Keys.WallTextures));
         
         //create a new level
-        this.createLevel(3, 3, 9, 9, engine.getRandom());
+        this.createLevel(4, 4, 11, 11, engine.getRandom(), engine.getResources().getGameImage(GameImages.Keys.Obstacles), engine.getResources().getGameImage(GameImages.Keys.BonusItems));
         
         //create new texture and set pixel data array
         //this.wall = new Texture();
@@ -85,7 +117,7 @@ public final class Manager implements IManager
         //this.sprite = new Texture(engine.getResources().getGameImage(GameImage.Keys.Soldier1), 0, 0);
         
         this.soldier = new Soldier1();
-        this.soldier.setImage(engine.getResources().getGameImage(GameImage.Keys.Soldier1));
+        this.soldier.setImage(engine.getResources().getGameImage(GameImages.Keys.Soldier1));
         
         //create new canvas
         this.screen = new Screen3D(window.width, window.height);
@@ -115,13 +147,10 @@ public final class Manager implements IManager
      * @param eachRoomRow The size of each room
      * @throws Exception 
      */
-    private void createLevel(final int roomCol, final int roomRow, final int eachRoomCol, final int eachRoomRow, final Random random) throws Exception
+    private void createLevel(final int roomCol, final int roomRow, final int eachRoomCol, final int eachRoomRow, final Random random, final Image obstacleSpriteSheet, final Image bonusItemSpriteSheet) throws Exception
     {
-        if (eachRoomRow % 2 == 0 || eachRoomCol % 2 == 0 || eachRoomRow != eachRoomCol)
-            throw new Exception("Each room must have the same amount of rows and columns and that number must be odd");
-        
         //create a new level
-        this.level = new Level(roomCol, roomRow, eachRoomCol, eachRoomRow, random);
+        this.level = new Level(roomCol, roomRow, eachRoomCol, eachRoomRow, random, obstacleSpriteSheet, bonusItemSpriteSheet);
     }
     
     /**
@@ -155,6 +184,18 @@ public final class Manager implements IManager
     public void dispose()
     {
         window = null;
+        
+        screen.dispose();
+        screen = null;
+
+        player.dispose();
+        player = null;
+        
+        level.dispose();
+        level = null;
+        
+        textures.dispose();
+        textures = null;
     }
     
     /**
@@ -170,7 +211,7 @@ public final class Manager implements IManager
         player.update(engine);
         
         //update level status
-        level.update(engine.getMain().getTime(), player.getInput().getPlayerX(), player.getInput().getPlayerZ());
+        level.update(engine.getMain().getTime(), player.getInput().getPlayerX(), player.getInput().getPlayerZ(), engine.getResources());
         
         //update soldier animation
         soldier.update(engine.getMain().getTime());
@@ -186,8 +227,10 @@ public final class Manager implements IManager
     @Override
     public void render(final Graphics graphics)
     {
-        graphics.drawImage(screen.getImage(), 0, 0, window.width, window.height, null);
+        //set the font
+        graphics.setFont(fonts.get(GameFont.Keys.GameFont));
         
-        //graphics.drawImage(screen.spriteImage, 0, 0, null);
+        //draw the buffered image
+        graphics.drawImage(screen.getImage(), 0, 0, window.width, window.height, null);
     }
 }

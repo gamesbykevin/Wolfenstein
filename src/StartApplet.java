@@ -69,8 +69,10 @@ public final class StartApplet extends JApplet
     @Override
     public void destroy()
     {
-        //free up resources
-        main.dispose();
-        main = null;
+        if (main != null)
+        {
+            main.dispose();
+            main = null;
+        }
     }
 }

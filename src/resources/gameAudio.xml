@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<sounds>
+    <sound id="PickupAmmo">resources/audio/game/sound/PickupAmmo.wav</sound>
+    <sound id="PickupMachinegun">resources/audio/game/sound/PickupMachinegun.wav</sound>
+    <sound id="ExtraLife">resources/audio/game/sound/ExtraLife.wav</sound>
+    <sound id="PickupChaingun">resources/audio/game/sound/PickupChaingun.wav</sound>
+    <sound id="PickupTreasure1">resources/audio/game/sound/PickupTreasure1.wav</sound>
+    <sound id="PickupTreasure2">resources/audio/game/sound/PickupTreasure2.wav</sound>
+    <sound id="PickupTreasure3">resources/audio/game/sound/PickupTreasure3.wav</sound>
+    <sound id="PickupTreasure4">resources/audio/game/sound/PickupTreasure4.wav</sound>
+    <sound id="PickupKey">resources/audio/game/sound/PickupKey.wav</sound>
+    <sound id="DoorClose">resources/audio/game/sound/DoorClose.wav</sound>
+    <sound id="DoorOpen">resources/audio/game/sound/DoorOpen.wav</sound>
+    <sound id="DoorOpenSecret">resources/audio/game/sound/DoorOpenSecret.wav</sound>
+    <sound id="PickupFood">resources/audio/game/sound/PickupFood.wav</sound>
+</sounds>

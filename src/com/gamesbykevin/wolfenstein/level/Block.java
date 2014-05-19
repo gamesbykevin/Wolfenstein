@@ -28,21 +28,10 @@ public class Block implements Disposable
     @Override
     public void dispose()
     {
-        door.dispose();
-        door = null;
-    }
-    
-    /**
-     * Open the door, if this isn't a door nothing will happen
-     */
-    public void open()
-    {
-        //make sure this is a door
-        if (!isDoor())
-            return;
+        if (door != null)
+            door.dispose();
         
-        //open door
-        door.open();
+        door = null;
     }
     
     /**

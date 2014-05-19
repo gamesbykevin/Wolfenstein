@@ -1,7 +1,10 @@
 package com.gamesbykevin.wolfenstein.display;
 
+import com.gamesbykevin.framework.base.Cell;
+
 import com.gamesbykevin.wolfenstein.hero.Input;
 import com.gamesbykevin.wolfenstein.level.*;
+import com.gamesbykevin.wolfenstein.level.objects.*;
 
 public class Render3D extends Render
 {
@@ -194,25 +197,27 @@ public class Render3D extends Render
         final int startZ = playerZ - renderRange;
         final int endZ = playerZ + renderRange;
         
+        final double extra = 1;
+        
+        Block block, east, south;
+        
         //check blocks in render range
         for (int xBlock = startX; xBlock < endX; xBlock++)
         {
             //stay in bounds
-            if (xBlock < 0 || xBlock >= level.getCols() || !hasRangeX(xBlock))
+            if (xBlock < 0 || xBlock >= level.getTotalColumns() || !hasRangeX(xBlock))
                 continue;
             
             for (int zBlock = startZ; zBlock < endZ; zBlock++)
             {
                 //stay in bounds
-                if (zBlock < 0 || zBlock >= level.getRows() || !hasRangeZ(zBlock))
+                if (zBlock < 0 || zBlock >= level.getTotalRows() || !hasRangeZ(zBlock))
                     continue;
                 
-                final double extra = 1;
+                block = level.getBlock(xBlock, zBlock);
                 
-                Block block = level.get(xBlock, zBlock);
-                
-                Block east = level.get(xBlock + extra, zBlock);
-                Block south = level.get(xBlock, zBlock + extra);
+                east = level.getBlock(xBlock + extra, zBlock);
+                south = level.getBlock(xBlock, zBlock + extra);
                 
                 if (block.isSolid())
                 {
@@ -231,8 +236,16 @@ public class Render3D extends Render
                             }
                             else
                             {
-                                //increase depth very little
-                                renderWall(xBlock + extra - doorSecretDepth, xBlock + extra - doorSecretDepth, zBlock + (extra * progress), zBlock + extra + (extra * progress), 0.5, textures.getTexture(block.getEast()));
+                                //if the door is closed the depth will be the same as the other walls
+                                if (block.getDoor().isClosed())
+                                {
+                                    renderWall(xBlock + extra, xBlock + extra, zBlock + (extra * progress), zBlock + extra + (extra * progress), 0.5, textures.getTexture(block.getEast()));
+                                }
+                                else
+                                {
+                                    //increase depth very little
+                                    renderWall(xBlock + extra - doorSecretDepth, xBlock + extra - doorSecretDepth, zBlock + (extra * progress), zBlock + extra + (extra * progress), 0.5, textures.getTexture(block.getEast()));
+                                }
                             }
                         }
                         else
@@ -265,8 +278,16 @@ public class Render3D extends Render
                             }
                             else
                             {
-                                //increase depth very little
-                                renderWall(xBlock + extra + (extra * progress), xBlock + (extra * progress), zBlock + extra - doorSecretDepth, zBlock + extra - doorSecretDepth, 0.5, textures.getTexture(block.getSouth()));
+                                //if the door is closed the depth will be the same as the other walls
+                                if (block.getDoor().isClosed())
+                                {
+                                    renderWall(xBlock + extra + (extra * progress), xBlock + (extra * progress), zBlock + extra, zBlock + extra, 0.5, textures.getTexture(block.getSouth()));
+                                }
+                                else
+                                {
+                                    //increase depth very little
+                                    renderWall(xBlock + extra + (extra * progress), xBlock + (extra * progress), zBlock + extra - doorSecretDepth, zBlock + extra - doorSecretDepth, 0.5, textures.getTexture(block.getSouth()));
+                                }
                             }
                         }
                         else
@@ -339,6 +360,10 @@ public class Render3D extends Render
                 }
             }
         }
+        
+        block = null;
+        south = null;
+        east = null;
     }
     
     /**
@@ -386,6 +411,29 @@ public class Render3D extends Render
     private boolean hasRangeZ(final int cell)
     {
         return (cell - (forward/16) <= renderRange && cell - (forward/16) >= -renderRange);
+    }
+    
+    /**
+     * Render the bonus objects and obstacles
+     * @param objects Our object that contains the bonus items and obstacles
+     */
+    public void renderLevelObjects(final LevelObjects objects)
+    {
+        for (BonusItem bonus : objects.getBonusItems())
+        {
+            for (Cell location : bonus.getLocations())
+            {
+                renderSprite(location.getCol(), 0, location.getRow(), 0, bonus.getPixels(), (int)bonus.getWidth(), (int)bonus.getHeight());
+            }
+        }
+        
+        for (Obstacle obstacle : objects.getObstacles())
+        {
+            for (Cell location : obstacle.getLocations())
+            {
+                renderSprite(location.getCol(), 0, location.getRow(), 0, obstacle.getPixels(), (int)obstacle.getWidth(), (int)obstacle.getHeight());
+            }
+        }
     }
     
     /**

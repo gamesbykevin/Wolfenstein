@@ -1,6 +1,5 @@
 package com.gamesbykevin.wolfenstein.resources;
 
-import static com.gamesbykevin.wolfenstein.resources.Resources.RESOURCE_DIR;
 import com.gamesbykevin.framework.resources.FontManager;
 
 /**
@@ -9,22 +8,22 @@ import com.gamesbykevin.framework.resources.FontManager;
  */
 public final class GameFont extends FontManager
 {
-    //location of resources
-    private static final String DIRECTORY = "font/{0}.ttf";
-    
     //description for progress bar
     private static final String DESCRIPTION = "Loading Font Resources";
     
+    /**
+     * These are the keys used to access the resources and need to match the id in the xml file
+     */
     public enum Keys
     {
-        Menu, Game, 
+        GameFont
     }
     
     public GameFont() throws Exception
     {
-        super(RESOURCE_DIR + DIRECTORY, Keys.values());
+        super(Resources.XML_CONFIG_GAME_FONT);
         
         //the description that will be displayed for the progress bar
-        super.setDescription(DESCRIPTION);
+        super.setProgressDescription(DESCRIPTION);
     }
 }

@@ -2,12 +2,12 @@ package com.gamesbykevin.wolfenstein.enemies;
 
 import com.gamesbykevin.framework.util.Timers;
 
-public final class Soldier1 extends Enemy
+public final class BigSoldier extends Enemy
 {
     /**
      * Create new enemy and setup animations
      */
-    public Soldier1()
+    public BigSoldier()
     {
         super();
         
@@ -27,7 +27,7 @@ public final class Soldier1 extends Enemy
         super.addAnimation(State.Hurt, 2, 0, 3, delay, false);
         
         //add death animation
-        super.addAnimation(State.Death, 4, 0, 4, delay, false);
+        super.addAnimation(State.Death, 5, 0, 4, delay, false);
         
         //default animation
         super.setAnimation(State.Idle);

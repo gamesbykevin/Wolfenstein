@@ -2,10 +2,13 @@ package com.gamesbykevin.wolfenstein.hero;
 
 import com.gamesbykevin.framework.base.Sprite;
 import com.gamesbykevin.framework.input.Keyboard;
-import com.gamesbykevin.wolfenstein.display.Render3D;
 
+import com.gamesbykevin.wolfenstein.display.Render3D;
 import com.gamesbykevin.wolfenstein.level.Block;
 import com.gamesbykevin.wolfenstein.level.Level;
+import com.gamesbykevin.wolfenstein.level.objects.BonusItem;
+import com.gamesbykevin.wolfenstein.resources.Resources;
+import com.gamesbykevin.wolfenstein.resources.GameAudio;
 
 import java.awt.event.KeyEvent;
 
@@ -73,7 +76,15 @@ public final class Input extends Sprite
         
     }
     
-    public void update(final Keyboard keyboard, final Level level) throws Exception
+    /**
+     * Update the player input and status
+     * @param keyboard Keyboard Input
+     * @param level The current Level
+     * @param hero The hero
+     * @param resources Resources object to play sound
+     * @throws Exception 
+     */
+    public void update(final Keyboard keyboard, final Level level, final Hero hero, final Resources resources) throws Exception
     {
         int xMove = 0;
         int zMove = 0;
@@ -235,35 +246,7 @@ public final class Input extends Sprite
         //now that the position is set calculate where the player is on the overall level
         this.column = (int)(getX() / 16);
         this.row = (int)(getZ() / 16);
-        
-        //check if the player is trying to open a door
-        if (openDoor)
-        {
-            //temp block object
-            Block block;
-            
-            //check any blocks within this range
-            final int distance = 2;
-
-            //now check all blocks surrounding the player
-            for (int x = -distance; x <= distance; x++)
-            {
-                for (int z = -distance; z <= distance; z++)
-                {
-                    //get the current block
-                    block = level.get(originalX + x, originalZ + z);
-
-                    //if this block is a door then open
-                    if (block.isDoor())
-                        block.open();
-                    
-                    //if we have selected the goal mark the level as complete
-                    if (block.isGoal())
-                        level.markComplete();
-                }
-            }
-        }
-        
+                
         //slow down speed
         setXA(getXA() * 0.1);
         setZA(getZA() * 0.1);
@@ -286,20 +269,203 @@ public final class Input extends Sprite
             //decrease rotation angle speed
             rotationa *= 0.5;
         }
+        
+        //check if the player is trying to open a door
+        if (openDoor)
+        {
+            //temp block object
+            Block block;
+            
+            //check any blocks within this range
+            final int distance = 2;
+
+            //now check all blocks surrounding the player
+            for (int x = -distance; x <= distance; x++)
+            {
+                for (int z = -distance; z <= distance; z++)
+                {
+                    //get the current block
+                    block = level.getBlock(originalX + x, originalZ + z);
+
+                    //if this block is a door
+                    if (block.isDoor())
+                    {
+                        //if the door is locked
+                        if (block.getDoor().isLocked())
+                        {
+                            //check if the hero has a key
+                            if (hero.hasKey())
+                            {
+                                //remove 1 key from inventory
+                                hero.removeKey();
+                                
+                                //the door is no longer locked
+                                block.getDoor().setLocked(false);
+                            }
+                            else
+                            {
+                                //we do not have a key so don't continue
+                                continue;
+                            }
+                        }
+                        
+                        //only play sound when door is closed and about to be opened
+                        if (block.getDoor().isClosed())
+                        {
+                            //if the door is a secret one play different audio
+                            if (block.getDoor().isSecret())
+                            {
+                                //play sound effect
+                                resources.playGameAudio(GameAudio.Keys.DoorOpenSecret);
+                            }
+                            else
+                            {
+                                //play sound effect
+                                resources.playGameAudio(GameAudio.Keys.DoorOpen);
+                            }
+                        }
+                        
+                        //open the door
+                        block.getDoor().open();
+                    }
+                    
+                    //if we have selected the goal
+                    if (block.isGoal())
+                    {
+                        //make sure player is inside the goal
+                        if (level.insideGoal(getPlayerX(), getPlayerZ()))
+                        {
+                            //mark the level as complete
+                            level.markComplete(block);
+                        }
+                    }
+                }
+            }
+        }
+        
+        //get the bonus item at the players current location
+        BonusItem.Type type = level.getLevelObjects().getBonusItemCollisionType(originalX, originalZ);
+        
+        //a bonus item was found
+        if (type != null)
+        {
+            switch (type)
+            {
+                case Key1:
+                case Key2:
+                    //add key to inventory
+                    hero.addKey();
+                    
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.PickupKey);
+                    break;
+                    
+                case SmallFood:
+                    //add health
+                    hero.modifyHealth(Hero.SMALL_HEALTH);
+
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.PickupFood);
+                    break;
+                    
+                case HealthKit:
+                    //add health
+                    hero.modifyHealth(Hero.HEALTH_KIT);
+
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.PickupFood);
+                    break;
+                    
+                case AmmoClip:
+                    //add to hero
+                    hero.add(type);
+
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.PickupAmmo);
+                    break;
+                    
+                case AssaultGun:
+                    //add to hero
+                    hero.add(type);
+                    
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.PickupMachinegun);
+                    break;
+
+                case MachineGun:
+                    //add to hero
+                    hero.add(type);
+                    
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.PickupChaingun);
+                    break;
+                    
+                case Treasure1:
+                    //add to score
+                    hero.addScore(Hero.TREASURE_1);
+                    
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.PickupTreasure1);
+                    break;
+                    
+                case Treasure2:
+                    //add to score
+                    hero.addScore(Hero.TREASURE_2);
+                    
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.PickupTreasure2);
+                    break;
+                    
+                case Treasure3:
+                    //add to score
+                    hero.addScore(Hero.TREASURE_3);
+                    
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.PickupTreasure3);
+                    break;
+                    
+                case Treasure4:
+                    //add to score
+                    hero.addScore(Hero.TREASURE_4);
+                    
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.PickupTreasure4);
+                    break;
+                    
+                case ExtraLife:
+                    //add life
+                    hero.setLives(hero.getLives() + 1);
+                    
+                    //play sound effect
+                    resources.playGameAudio(GameAudio.Keys.ExtraLife);
+                    break;
+                    
+                default:
+                    throw new Exception("Bonus Type not handled here");
+            }
+        }
     }
     
+    /**
+     * Get the column where the player is located
+     * @return The current column where the player is
+     */
     public int getPlayerX()
     {
         return this.column;
     }
     
+    /**
+     * Get the row where the player is located
+     * @return The current row where the player is
+     */
     public int getPlayerZ()
     {
         return this.row;
     }
     
     /**
-     * Check for collision with walls
+     * Check for collision with walls and obstacles in a level
      * @param level The level that contains the blocks
      * @param xLoc x location where the player is
      * @param zLoc z location where the player is
@@ -314,8 +480,8 @@ public final class Input extends Sprite
             Block block;
 
             //the current new block the player will be in
-            Block current = level.get(xLoc, zLoc);
-
+            Block current = level.getBlock(xLoc, zLoc);
+            
             //if the current block is not a door
             if (!current.isDoor())
             {
@@ -323,25 +489,25 @@ public final class Input extends Sprite
                 final double WALL_D = .950;
 
                 //west
-                block = level.get(xLoc - WALL_D, zLoc);
+                block = level.getBlock(xLoc - WALL_D, zLoc);
 
                 if (hasCollision(block))
                     return true;
 
                 //east
-                block = level.get(xLoc + WALL_D, zLoc);
+                block = level.getBlock(xLoc + WALL_D, zLoc);
 
                 if (hasCollision(block))
                     return true;
 
                 //north
-                block = level.get(xLoc, zLoc - WALL_D);
+                block = level.getBlock(xLoc, zLoc - WALL_D);
                 
                 if (hasCollision(block))
                     return true;
 
                 //south
-                block = level.get(xLoc, zLoc + WALL_D);
+                block = level.getBlock(xLoc, zLoc + WALL_D);
                 
                 if (hasCollision(block))
                     return true;
@@ -351,25 +517,25 @@ public final class Input extends Sprite
                  */
 
                 //north west
-                block = level.get(xLoc - Render3D.CLIP, zLoc - Render3D.CLIP);
+                block = level.getBlock(xLoc - Render3D.CLIP, zLoc - Render3D.CLIP);
                 
                 if (hasCollision(block))
                     return true;
 
                 //north east
-                block = level.get(xLoc + Render3D.CLIP, zLoc - Render3D.CLIP);
+                block = level.getBlock(xLoc + Render3D.CLIP, zLoc - Render3D.CLIP);
 
                 if (hasCollision(block))
                     return true;
                 
                 //south west
-                block = level.get(xLoc - Render3D.CLIP, zLoc + Render3D.CLIP);
+                block = level.getBlock(xLoc - Render3D.CLIP, zLoc + Render3D.CLIP);
 
                 if (hasCollision(block))
                     return true;
                 
                 //south east
-                block = level.get(xLoc + Render3D.CLIP, zLoc + Render3D.CLIP);
+                block = level.getBlock(xLoc + Render3D.CLIP, zLoc + Render3D.CLIP);
                 
                 if (hasCollision(block))
                     return true;
@@ -380,25 +546,25 @@ public final class Input extends Sprite
                 if (current.getDoor().isOpen())
                 {
                     //west
-                    block = level.get(xLoc - Render3D.CLIP, zLoc);
+                    block = level.getBlock(xLoc - Render3D.CLIP, zLoc);
 
                     if (hasCollision(block))
                         return true;
 
                     //east
-                    block = level.get(xLoc + Render3D.CLIP, zLoc);
+                    block = level.getBlock(xLoc + Render3D.CLIP, zLoc);
 
                     if (hasCollision(block))
                         return true;
 
                     //north
-                    block = level.get(xLoc, zLoc - Render3D.CLIP);
+                    block = level.getBlock(xLoc, zLoc - Render3D.CLIP);
 
                     if (hasCollision(block))
                         return true;
 
                     //south
-                    block = level.get(xLoc, zLoc + Render3D.CLIP);
+                    block = level.getBlock(xLoc, zLoc + Render3D.CLIP);
 
                     if (hasCollision(block))
                         return true;
@@ -409,6 +575,10 @@ public final class Input extends Sprite
                     return true;
                 }
             }
+            
+            //check if any collisions with obstacles
+            if (level.getLevelObjects().hasObstacleCollision(xLoc, zLoc))
+                return true;
         }
         catch(Exception e)
         {

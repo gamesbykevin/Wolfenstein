@@ -3,10 +3,12 @@ package com.gamesbykevin.wolfenstein.main;
 import java.awt.*;
 import javax.swing.*;
 
+import com.gamesbykevin.framework.resources.Disposable;
+
 import com.gamesbykevin.wolfenstein.engine.Engine;
 import com.gamesbykevin.wolfenstein.shared.Shared;
 
-public final class Main extends Thread
+public final class Main extends Thread implements Disposable
 {
     //image where all game/menu elements will be written to
     private Image bufferedImage;
@@ -74,6 +76,53 @@ public final class Main extends Thread
 
         //duration of each update in nanoseconds
         this.nanoSecondsPerUpdate = NANO_SECONDS_PER_SECOND / ups;
+    }
+    
+    /**
+     * Mark objects for garbage collection
+     */
+    @Override
+    public void dispose()
+    {
+        if (bufferedImage != null)
+        {
+            bufferedImage.flush();
+            bufferedImage = null;
+        }
+        
+        if (bufferedImageGraphics != null)
+        {
+            bufferedImageGraphics.dispose();
+            bufferedImageGraphics = null;
+        }
+        
+        if (graphics != null)
+        {
+            graphics.dispose();
+            graphics = null;
+        }
+        
+        if (engine != null)
+        {
+            engine.dispose();
+            engine = null;
+        }
+        
+        if (applet != null)
+        {
+            applet.destroy();
+            applet = null;
+        }
+        
+        if (panel != null)
+        {
+            panel.removeAll();
+            panel = null;
+        }
+        
+        originalSizeWindow = null;
+        fullSizeWindow = null;
+        currentWindow = null;
     }
     
     /**
@@ -147,7 +196,7 @@ public final class Main extends Thread
                     checkCount();
                 }
                 
-                Thread.sleep(0, 100);
+                Thread.sleep(0, 10);
             }
             catch(Exception e)
             {
@@ -347,31 +396,5 @@ public final class Main extends Thread
         {
             e.printStackTrace();
         }
-    }
-    
-    /**
-     * Set all objects null for garbage collection
-     */
-    public void dispose()
-    {
-        bufferedImage = null;
-        bufferedImageGraphics = null;
-    
-        originalSizeWindow = null;
-        fullSizeWindow = null;
-        
-        currentWindow = null;
-        
-        engine.dispose();
-        engine = null;
-        
-        graphics.dispose();
-        graphics = null;
-    
-        if (applet != null)
-            applet = null;
-        
-        if (panel != null)
-            panel = null;
     }
 }

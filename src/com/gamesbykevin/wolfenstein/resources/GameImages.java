@@ -3,27 +3,31 @@ package com.gamesbykevin.wolfenstein.resources;
 import com.gamesbykevin.framework.resources.*;
 
 /**
- * All audio for game
+ * All game images
  * @author GOD
  */
-public final class GameAudio extends AudioManager
+public final class GameImages extends ImageManager
 {
     //description for progress bar
-    private static final String DESCRIPTION = "Loading Audio Resources";
+    private static final String DESCRIPTION = "Loading Image Resources";
     
     /**
      * These are the keys used to access the resources and need to match the id in the xml file
      */
     public enum Keys
     {
-        PickupAmmo, PickupMachinegun, ExtraLife, PickupChaingun, PickupKey, PickupFood, 
-        PickupTreasure1, PickupTreasure2, PickupTreasure3, PickupTreasure4, 
-        DoorClose, DoorOpen, DoorOpenSecret
+        WallTextures, 
+        Guns,
+        Obstacles,
+        Soldier1, Soldier2, Soldier3, BigSoldier, 
+        Dog, 
+        Boss1, Boss2, Boss3, Boss4, Boss5, 
+        BonusItems
     }
     
-    public GameAudio() throws Exception
+    public GameImages() throws Exception
     {
-        super(Resources.XML_CONFIG_GAME_AUDIO);
+        super(Resources.XML_CONFIG_GAME_IMAGE);
         
         //the description that will be displayed for the progress bar
         super.setProgressDescription(DESCRIPTION);

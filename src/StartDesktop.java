@@ -11,6 +11,7 @@ import javax.swing.JPanel;
  */
 public final class StartDesktop extends JPanel
 {
+    //our object that will run everything in the application
     private Main main;
     
     public StartDesktop()

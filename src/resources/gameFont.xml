@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<fonts>
+    <font id="GameFont">resources/font/game.ttf</font>
+</fonts>

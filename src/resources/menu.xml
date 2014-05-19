@@ -1,5 +1,8 @@
 <?xml version="1.0"?>
 <menu>
+    <font id="MenuFont">resources/font/menu.ttf</font>
+    <mouseImage id="Mouse">resources/images/game/mouse.png</mouseImage>
+    <mouseImage id="MouseDrag">resources/images/game/mouseDrag.png</mouseImage>
     <layer id="Initial" next="Credits">
         <transition></transition>
         <force>false</force>

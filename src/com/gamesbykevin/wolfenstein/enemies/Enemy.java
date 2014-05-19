@@ -1,18 +1,9 @@
 package com.gamesbykevin.wolfenstein.enemies;
 
-import com.gamesbykevin.framework.base.Animation;
-import com.gamesbykevin.framework.base.Sprite;
+import com.gamesbykevin.wolfenstein.level.objects.LevelObject;
 
-import com.gamesbykevin.wolfenstein.display.Texture;
-
-public abstract class Enemy extends Sprite
+public abstract class Enemy extends LevelObject
 {
-    //each animation frame on the original image is the same size for each enemy
-    private static final int DIMENSIONS = 64;
-    
-    //we will render our current enemy animation frame as a texture
-    private Texture texture;
-    
     /**
      * Different actions the enemy can represent
      */
@@ -23,91 +14,69 @@ public abstract class Enemy extends Sprite
     
     /**
      * Create new enemy
-     * @param image the sprite sheet of all the enemy animation frames 
      */
     protected Enemy()
     {
-        //set dimensions of each animation frame
-        super.setDimensions(DIMENSIONS, DIMENSIONS);
-        
-        //create our sprite sheet
-        super.createSpriteSheet();
-        
-        //create new texture
-        this.texture = new Texture();
-    }
-    
-    public void update(final long time) throws Exception
-    {
-        //update animation
-        super.getSpriteSheet().update(time);
-        
-        //update current image
-        texture.update(getImage(), getSpriteSheet().getLocation());
+        super();
     }
     
     /**
-     * Add animation to this enemy
-     * @param state Which state does this animation represent
-     * @param total How many animation frames
-     * @param row Which row contains the animation
-     * @param loop Do we want to loop the animation once finished
+     * Is the enemy dead?
+     * @return true if dead, false if not or if the animation does not exist
      */
-    protected void addAnimation(final State state, final int total, final int row, final long delay, final boolean loop)
+    public boolean isDead()
     {
-        final Animation animation = new Animation();
+        if (!hasAnimation(State.Death))
+            return false;
         
-        //find our y coordinate
-        final int y = row * DIMENSIONS;
-        
-        //current count of animations added
-        int count = 0;
-        
-        //add all frames to the animation
-        while (count < total)
-        {
-            animation.add(count * DIMENSIONS, y, DIMENSIONS, DIMENSIONS, delay);
-            
-            //count animation
-            count++;
-        }
-        
-        //does the animation repeat
-        animation.setLoop(loop);
-        
-        //add animation
-        super.getSpriteSheet().add(animation, state);
-        
-        //if the current animation has not been set yet, set a default one
-        if (getSpriteSheet().getCurrent() == null)
-            getSpriteSheet().setCurrent(state);
+        return (getKey() == State.Death);
     }
     
     /**
-     * Does the sprite sheet contain the specified animation
-     * @param state The animation we are looking for
-     * @return True if animation is setup, false otherwise
+     * Is the enemy hurt?
+     * @return true if hurt, false if not or if the animation does not exist
      */
-    public boolean hasAnimation(final State state)
+    public boolean isHurt()
     {
-        return (super.getSpriteSheet().getSpriteSheetAnimation(state) != null);
+        if (!hasAnimation(State.Hurt))
+            return false;
+        
+        return (getKey() == State.Hurt);
     }
     
     /**
-     * Get the current animation the enemy is in
-     * @return The state, if not set null is returned
+     * Is the enemy attacking?
+     * @return true if attacking, false if not or if the animation does not exist
      */
-    public State getState()
+    public boolean isAttacking()
     {
-        return (State)super.getSpriteSheet().getCurrent();
+        if (!hasAnimation(State.Attacking))
+            return false;
+        
+        return (getKey() == State.Attacking);
     }
     
     /**
-     * Get pixel data
-     * @return pixel array data representing the current image
+     * Is the enemy walking?
+     * @return true if walking, false if not or if the animation does not exist
      */
-    public int[] getPixels()
+    public boolean isWalking()
     {
-        return this.texture.getPixels();
+        if (!hasAnimation(State.Walking))
+            return false;
+        
+        return (getKey() == State.Walking);
+    }
+    
+    /**
+     * Is the enemy idle?
+     * @return true if idle, false if not or if the animation does not exist
+     */
+    public boolean isIdle()
+    {
+        if (!hasAnimation(State.Idle))
+            return false;
+        
+        return (getKey() == State.Idle);
     }
 }

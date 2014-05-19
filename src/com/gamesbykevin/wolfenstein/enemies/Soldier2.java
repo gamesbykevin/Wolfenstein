@@ -2,12 +2,12 @@ package com.gamesbykevin.wolfenstein.enemies;
 
 import com.gamesbykevin.framework.util.Timers;
 
-public final class Soldier1 extends Enemy
+public final class Soldier2 extends Enemy
 {
     /**
      * Create new enemy and setup animations
      */
-    public Soldier1()
+    public Soldier2()
     {
         super();
         

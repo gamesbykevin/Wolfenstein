@@ -1,9 +1,15 @@
 package com.gamesbykevin.wolfenstein.display;
 
+import com.gamesbykevin.framework.resources.Disposable;
+
 import java.awt.Image;
 import java.util.HashMap;
 
-public final class Textures 
+/**
+ * Textures for the walls are defined here
+ * @author GOD
+ */
+public final class Textures implements Disposable
 {
     private HashMap<Key, Texture> textures;
     
@@ -31,7 +37,7 @@ public final class Textures
         GoalSwitchOn(1,7),
         HitlerPortrait3(4, 10),
         HitlerPortrait4(0, 16),
-        Door2(2, 16),
+        DoorLocked(2, 16),
         DoorSide(4, 16),
         DoorGoal2(0, 17);
 
@@ -52,6 +58,22 @@ public final class Textures
         {
             return this.row;
         }
+    }
+    
+    @Override
+    public void dispose()
+    {
+        for (Texture texture : textures.values())
+        {
+            if (texture != null)
+            {
+                texture.dispose();
+                texture = null;
+            }
+        }
+        
+        textures.clear();
+        textures = null;
     }
     
     /**

@@ -1,6 +1,5 @@
 package com.gamesbykevin.wolfenstein.resources;
 
-import static com.gamesbykevin.wolfenstein.resources.Resources.RESOURCE_DIR;
 import com.gamesbykevin.framework.resources.TextManager;
 
 /**
@@ -9,12 +8,12 @@ import com.gamesbykevin.framework.resources.TextManager;
  */
 public final class GameText extends TextManager
 {
-    //location of resources
-    private static final String DIRECTORY = "text/game/{0}.txt";
-    
     //description for progress bar
     private static final String DESCRIPTION = "Loading Game Text Resources";
     
+    /**
+     * These are the keys used to access the resources and need to match the id in the xml file
+     */
     public enum Keys
     {
         
@@ -22,9 +21,9 @@ public final class GameText extends TextManager
     
     public GameText() throws Exception
     {
-        super(RESOURCE_DIR + DIRECTORY, Keys.values());
+        super(Resources.XML_CONFIG_GAME_TEXT);
         
         //the description that will be displayed for the progress bar
-        super.setDescription(DESCRIPTION);
+        super.setProgressDescription(DESCRIPTION);
     }
 }

@@ -1,5 +1,7 @@
 package com.gamesbykevin.wolfenstein.display;
 
+import com.gamesbykevin.framework.resources.Disposable;
+
 import com.gamesbykevin.wolfenstein.enemies.Enemy;
 import com.gamesbykevin.wolfenstein.engine.Engine;
 
@@ -9,7 +11,7 @@ import java.awt.image.DataBufferInt;
 /**
  * This class will render the 3d objects
  */
-public final class Screen3D extends Render
+public final class Screen3D extends Render implements Disposable
 {
     //this object will do the 3d rendering
     public Render3D render3d;
@@ -29,6 +31,18 @@ public final class Screen3D extends Render
         
         //get the pixel data from the image and set as the screen pixels
         this.setPixels(((DataBufferInt)this.image.getRaster().getDataBuffer()).getData());
+    }
+    
+    @Override
+    public void dispose()
+    {
+        super.dispose();
+        
+        render3d.dispose();
+        render3d = null;
+        
+        image.flush();
+        image = null;
     }
     
     /**
@@ -59,8 +73,11 @@ public final class Screen3D extends Render
         //draw walls
         render3d.renderWalls(engine.getManager().getTextures(), engine.getManager().getLevel());
         
+        //draw in game obstacles and bonus items
+        render3d.renderLevelObjects(engine.getManager().getLevel().getLevelObjects());
+        
         //draw sprites/level-objects
-        final int xBlock = 5, zBlock = 10; 
+        final int xBlock = 5, zBlock = 5; 
         render3d.renderSprite(xBlock, 0, zBlock, 0, sprite.getPixels(), (int)sprite.getWidth(), (int)sprite.getHeight());
         
         //apply brightness to pixels based on depth

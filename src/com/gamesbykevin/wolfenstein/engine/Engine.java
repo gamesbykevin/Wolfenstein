@@ -20,7 +20,7 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
     //access this menu here
     private CustomMenu menu;
     
-    //object that contains all image/audio resources in the game
+    //our object that will contain all of the game resources
     private Resources resources;
     
     //mouse object that will be recording mouse input
@@ -29,17 +29,14 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
     //keyboard object that will be recording key input
     private Keyboard keyboard;
     
-    //original font
-    private Font font;
-    
-    //the menu font
-    private Font menuFont;
-    
     //object containing all of the game elements
     private Manager manager;
     
     //object used to make random decisions
     private Random random;
+    
+    //default font
+    private Font font;
     
     /**
      * The Engine that contains the game/menu objects
@@ -49,10 +46,24 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
      */
     public Engine(final Main main) throws Exception
     {
+        //reference to parent class
         this.main = main;
+        
+        //object used to track mouse input
         this.mouse = new Mouse();
+        
+        //object used to track keyboard input
         this.keyboard = new Keyboard();
-        this.resources = new Resources();
+        
+        //seed used to generate random numbers
+        final long seed = System.nanoTime();
+        
+        //create new Random object
+        random = new Random(seed);
+        
+        //display seed if debugging
+        if (Shared.DEBUG)
+            System.out.println("Seed = " + seed);
     }
     
     /**
@@ -63,22 +74,35 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
     {
         try
         {
-            resources.dispose();
-            resources = null;
+            if (resources != null)
+            {
+                resources.dispose();
+                resources = null;
+            }
             
-            menu.dispose();
-            menu = null;
-
-            mouse.dispose();
-            mouse = null;
+            if (menu != null)
+            {
+                menu.dispose();
+                menu = null;
+            }
             
-            keyboard.dispose();
-            keyboard = null;
+            if (mouse != null)
+            {
+                mouse.dispose();
+                mouse = null;
+            }
+            
+            if (keyboard != null)
+            {
+                keyboard.dispose();
+                keyboard = null;
+            }
             
             if (manager != null)
+            {
                 manager.dispose();
-            
-            manager = null;
+                manager = null;
+            }
             
             random = null;
         }
@@ -93,21 +117,13 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
     {
         try
         {
-            //if resources are still loading
-            if (resources.isLoading())
+            if (this.menu == null)
             {
-                resources.update(main.getContainerClass());
-
-                //resources are now loaded so create the menu
-                if (!resources.isLoading())
-                {
-                    //reset mouse and keyboard input
-                    mouse.reset();
-                    keyboard.reset();
-                    
-                    //create new menu
-                    menu = new CustomMenu(this);
-                }
+                //create new menu
+                menu = new CustomMenu(this);
+                
+                //reset mouse and keyboard input
+                resetInput();
             }
             else
             {
@@ -115,8 +131,7 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
                 if (!menu.hasFocus())
                 {
                     //reset mouse and keyboard input
-                    mouse.reset();
-                    keyboard.reset();
+                    resetInput();
                 }
 
                 //update the menu
@@ -125,9 +140,25 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
                 //if the menu is finished and the window has focus
                 if (menu.hasFinished() && menu.hasFocus())
                 {
-                    //NOTE: MAIN GAME LOGIC HERE
-                    if (manager != null)
+                    //if our resources object is empty create a new one
+                    if (resources == null)
+                        this.resources = new Resources();
+                    
+                    //check if we are still loading resources
+                    if (resources.isLoading())
+                    {
+                        //load resources
+                        resources.update(main.getContainerClass());
+                    }
+                    else
+                    {
+                        //create new manager because at this point our resources have loaded
+                        if (manager == null)
+                            manager = new Manager(this);
+                            
+                        //update main game logic
                         manager.update(this);
+                    }
                 }
                 
                 //if the mouse is released reset all mouse events
@@ -139,6 +170,35 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
         {
             e.printStackTrace();
         }
+    }
+    
+    /**
+     * Flag the engine to reset the game
+     */
+    public void setReset()
+    {
+        //reset mouse and keyboard input
+        resetInput();
+        
+        if (this.resources != null)
+        {
+            this.resources.stopAllSound();
+            this.resources.dispose();
+            this.resources = null;
+        }
+        
+        if (this.manager != null)
+        {
+            this.manager.dispose();
+            this.manager = null;
+        }
+    }
+    
+    private void resetInput()
+    {
+        //reset mouse and keyboard input
+        getMouse().reset();
+        getKeyboard().reset();
     }
     
     public Main getMain()
@@ -156,37 +216,6 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
     }
     
     /**
-     * Here lies the logic to start a new game
-     * 
-     * @throws Exception 
-     */
-    @Override
-    public void reset() throws Exception
-    {
-        //stop all sound before application starts
-        getResources().stopAllSound();
-        
-        //reset input(s)
-        getKeyboard().reset();
-        getMouse().reset();
-        
-        //seed used to generate random numbers
-        final long seed = System.nanoTime();
-        
-        //create new Random object
-        random = new Random(seed);
-        
-        //display seed
-        System.out.println("Seed = " + seed);
-        
-        //if the manager already exists release resources
-        if (manager != null)
-            manager.dispose();
-        
-        manager = new Manager(this);
-    }
-    
-    /**
      * Draw our game to the Graphics object whether resources are still loading or the game is intact
      * @param graphics
      * @return Graphics
@@ -195,39 +224,34 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
     @Override
     public void render(Graphics graphics) throws Exception
     {
-        //store the original font if we haven't already
+        //get default font
         if (font == null)
             font = graphics.getFont();
         
-        //if the resources are still loading
-        if (resources.isLoading())
+        if (menu != null)
         {
-            //draw loading screen
-            resources.render(graphics, main.getScreen());
-        }
-        else
-        {
-            //draw application elements
-            renderElements((Graphics2D)graphics);
+            //if the menu is finished and the window has focus
+            if (menu.hasFinished() && menu.hasFocus())
+            {
+                //before we start game we need to load the resources
+                if (resources.isLoading())
+                {
+                    //set default font
+                    graphics.setFont(font);
+                    
+                    //draw loading screen
+                    resources.render(graphics, main.getScreen());
+                }
+            }
+            
+            //draw game elements
+            if (manager != null)
+            {
+                manager.render(graphics);
+            }
             
             //draw menu on top of the game if visible
             renderMenu(graphics);
-        }
-    }
-    
-    /**
-     * Draw our application elements
-     * @param graphics2d Graphics2D object that game elements will be written to
-     * @throws Exception 
-     */
-    private void renderElements(Graphics2D graphics) throws Exception
-    {
-        //NOTE: DRAW MAIN GAME HERE
-        if (manager != null)
-        {
-            graphics.setFont(resources.getFont(GameFont.Keys.Game).deriveFont(18f));
-            
-            manager.render(graphics);
         }
     }
     
@@ -239,38 +263,20 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
      */
     private void renderMenu(Graphics graphics) throws Exception
     {
-        //set the appropriate menu font
-        if (this.menuFont == null)
-            this.menuFont = resources.getFont(GameFont.Keys.Menu).deriveFont(18f);
-        
-        graphics.setFont(menuFont);
-        
         //if menu is setup draw menu
         if (menu.isSetup())
             menu.render(graphics);
 
-        //if menu is finished and we don't want to hide mouse cursor then draw it, or if the menu is not finished show mouse
+        //if menu is finished and we don't want to hide the mouse cursor then draw it, or if the menu is not finished draw it
         if (menu.hasFinished() && !Shared.HIDE_MOUSE || !menu.hasFinished())
         {
-            if (mouse.getLocation() != null)
-            {
-                if (resources.getGameImage(GameImage.Keys.Mouse) != null && resources.getGameImage(GameImage.Keys.MouseDrag) != null)
-                {
-                    if (mouse.isMouseDragged())
-                    {
-                        graphics.drawImage(resources.getGameImage(GameImage.Keys.MouseDrag), mouse.getLocation().x, mouse.getLocation().y, null);
-                    }
-                    else
-                    {
-                        graphics.drawImage(resources.getGameImage(GameImage.Keys.Mouse), mouse.getLocation().x, mouse.getLocation().y, null);
-                    }
-                }
-            }
+            //draw the mouse
+            menu.renderMouse(graphics, mouse);
         }
     }
     
     /**
-     * Object containin all of the game elements
+     * Object that contains all of the game elements
      * @return Manager
      */
     public Manager getManager()

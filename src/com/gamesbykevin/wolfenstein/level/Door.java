@@ -13,14 +13,20 @@ public final class Door implements Disposable
     //keep the door open for this duration once the player moves away from the door
     private static final long DURATION_OPEN = Timers.toNanoSeconds(1500L);
     
-    //it will take 2 seconds for the door to close
-    private static final long DURATION_CLOSING = Timers.toNanoSeconds(2000L);
+    //it will take 1.5 seconds for the door to close
+    private static final long DURATION_CLOSING = Timers.toNanoSeconds(1500L);
     
-    //it will take 2 seconds for the door to close
+    //it will take 1 seconds for the door to open
     private static final long DURATION_OPENING = Timers.toNanoSeconds(1000L);
+    
+    //it will take 2.5 seconds for the secret door to open
+    private static final long DURATION_OPENING_SECRET = Timers.toNanoSeconds(3000L);
     
     //is this a secret door
     private boolean secret = false;
+    
+    //is this door locked
+    private boolean locked = false;
     
     /**
      * Possible scenarios for the door
@@ -50,6 +56,26 @@ public final class Door implements Disposable
     }
     
     /**
+     * Does this door need to be locked?
+     * @param locked true if this door is to be locked, false otherwise
+     */
+    public void setLocked(final boolean locked)
+    {
+        this.locked = locked;
+    }
+    
+    /**
+     * Is this door locked?<br>
+     * If the door is locked it will require a key.
+     * @return true if locked, false otherwise
+     */
+    public boolean isLocked()
+    {
+        return this.locked;
+    }
+            
+    
+    /**
      * Set the door hidden/secret
      * @param secret true if this door a hidden/secret, false otherwise
      */
@@ -70,7 +96,7 @@ public final class Door implements Disposable
     /**
      * The door will only be opened if it is closed, else nothing happens
      */
-    protected void open()
+    public void open()
     {
         switch(getState())
         {
@@ -80,8 +106,17 @@ public final class Door implements Disposable
                 //we are now opening the door
                 setState(State.OPENING);
                 
-                //set the appropriate time
-                timer.setReset(DURATION_OPENING);
+                //secret doors take longer to open
+                if (isSecret())
+                {
+                    //set the appropriate time
+                    timer.setReset(DURATION_OPENING_SECRET);
+                }
+                else
+                {
+                    //set the appropriate time
+                    timer.setReset(DURATION_OPENING);
+                }
                 
                 //reset timer
                 timer.reset();

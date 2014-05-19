@@ -1,11 +1,13 @@
 package com.gamesbykevin.wolfenstein.display;
 
+import com.gamesbykevin.framework.resources.Disposable;
+
 import java.awt.image.BufferedImage;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Rectangle;
 
-public final class Texture extends Render
+public final class Texture extends Render implements Disposable
 {
     //all wall textures are 64 x 64, this value also needs to be a multiple of 8
     private static final int WIDTH  = 64;
@@ -39,6 +41,24 @@ public final class Texture extends Render
         
         //get our graphics object
         this.graphics = bufferedImage.createGraphics();
+    }
+    
+    @Override
+    public void dispose()
+    {
+        if (this.bufferedImage != null)
+        {
+            this.bufferedImage.flush();
+            this.bufferedImage = null;
+        }
+        
+        if (this.graphics != null)
+        {
+            this.graphics.dispose();
+            this.graphics = null;
+        }
+        
+        super.dispose();
     }
     
     /**

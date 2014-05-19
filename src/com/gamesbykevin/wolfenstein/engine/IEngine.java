@@ -9,13 +9,6 @@ import java.awt.Graphics;
 public interface IEngine extends Disposable
 {
     /**
-     * This method needs to reset the appropriate game elements so the game can restart
-     * 
-     * @throws Exception 
-     */
-    public void reset() throws Exception;
-    
-    /**
      * Draw the engine which contains all of the game elements
      * @param graphics Graphics object that game will be written to
      * @return Graphics object containing game/menu elements

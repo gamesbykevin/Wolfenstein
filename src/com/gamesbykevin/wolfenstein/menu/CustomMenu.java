@@ -1,12 +1,16 @@
 package com.gamesbykevin.wolfenstein.menu;
 
 import com.gamesbykevin.wolfenstein.engine.Engine;
+import com.gamesbykevin.wolfenstein.resources.Resources;
 import com.gamesbykevin.wolfenstein.shared.IElement;
 
 import com.gamesbykevin.framework.display.FullScreen;
+import com.gamesbykevin.framework.input.Mouse;
 import com.gamesbykevin.framework.menu.*;
-import com.gamesbykevin.wolfenstein.resources.Resources;
+import com.gamesbykevin.framework.resources.FontManager;
+import com.gamesbykevin.framework.resources.ImageManager;
 
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 
@@ -16,9 +20,6 @@ import java.awt.event.KeyEvent;
  */
 public final class CustomMenu extends Menu implements IElement
 {
-    //reset = create a new game
-    private boolean reset = true;
-    
     //object used to switch container to full screen
     private FullScreen fullScreen;
     
@@ -59,16 +60,71 @@ public final class CustomMenu extends Menu implements IElement
     //does the container have focus
     private Toggle focus = Toggle.On;
     
+    //here the images for the mouse cursor will be contained
+    private ImageManager images;
+    
+    /**
+     * Unique id's used to access the resources and must match the id in the xml file
+     */
+    private enum MouseKey
+    {
+        Mouse, MouseDrag
+    }
+    
+    //object that contains all the fonts for the menu
+    private FontManager fonts;
+    
+    //the default font size
+    private static final float DEFAULT_FONT_SIZE = 24;
+    
+    /**
+     * Unique id's used to access the resources and must match the id in the xml file
+     */
+    private enum FontKey
+    {
+        MenuFont
+    }
+    
+    //the mouse images are provided in this node name
+    private static final String MOUSE_NODE_NAME = "mouseImage";
+    
     public CustomMenu(final Engine engine) throws Exception
     {
         //set the container the menu will reside within
-        super(engine.getMain().getScreen(), Resources.RESOURCE_DIR + "menu.xml", engine.getMain().getContainerClass());
+        super(engine.getMain().getScreen(), Resources.XML_CONFIG_MENU, engine.getMain().getContainerClass());
         
         //set the first layer
         super.setLayer(LayerKey.Initial);
         
         //set the last layer so we know when the menu has completed
         super.setFinish(LayerKey.GameStart);
+        
+        //create container for mouse cursor images, use special node name for the mouse images
+        this.images = new ImageManager(Resources.XML_CONFIG_MENU, MOUSE_NODE_NAME);
+        
+        //load the mouse images
+        while(!images.isComplete())
+        {
+            images.update(engine.getMain().getContainerClass());
+        }
+        
+        //verify if anything is incorrect
+        images.verifyLocations(MouseKey.values());
+        
+        //create container for any menu fonts
+        this.fonts = new FontManager(Resources.XML_CONFIG_MENU);
+        
+        //load the font(s)
+        while(!fonts.isComplete())
+        {
+            fonts.update(engine.getMain().getContainerClass());
+        }
+        
+        //verify if anything is incorrect
+        fonts.verifyLocations(FontKey.values());
+        
+        //get the font just added and change the Font Size
+        fonts.set(FontKey.MenuFont, fonts.get(FontKey.MenuFont).deriveFont(DEFAULT_FONT_SIZE));
     }
     
     /**
@@ -83,15 +139,11 @@ public final class CustomMenu extends Menu implements IElement
         //if the menu is not on the last layer we need to check for changes made in the menu
         if (!super.hasFinished())
         {
-            //if we are on the main title screen and reset is not enabled
-            if (super.hasCurrent(LayerKey.MainTitle) && !reset)
-            {
-                reset = true;
-                engine.getResources().stopAllSound();
-            }
-            
             //the option selection for the sound and fullscreen
             Toggle tmpSound = sound, tmpFullWindow = fullWindow;
+            
+            //are we currently in the in-game options
+            final boolean isInGameOptionsLayer = super.hasCurrent(LayerKey.OptionsInGame);
             
             //if on the options screen check if sound/fullScreen enabled
             if (super.hasCurrent(LayerKey.Options))
@@ -101,7 +153,7 @@ public final class CustomMenu extends Menu implements IElement
             }
             
             //if on the in-game options screen check if sound/fullScreen enabled
-            if (super.hasCurrent(LayerKey.OptionsInGame))
+            if (isInGameOptionsLayer)
             {
                 tmpSound = Toggle.values()[getOptionSelectionIndex(LayerKey.OptionsInGame, OptionKey.Sound)];
                 tmpFullWindow = Toggle.values()[getOptionSelectionIndex(LayerKey.OptionsInGame, OptionKey.FullScreen)];
@@ -112,12 +164,6 @@ public final class CustomMenu extends Menu implements IElement
             {
                 //go to specified layer
                 super.setLayer(LayerKey.GameStart);
-                
-                //mark flag that we can reset
-                reset = true;
-                
-                //stop all sound
-                engine.getResources().stopAllSound();
             }
             
             //if the values are not equal to each other a change was made
@@ -146,6 +192,7 @@ public final class CustomMenu extends Menu implements IElement
                 //grab the rectangle coordinates of the full screen
                 engine.getMain().setFullScreen();
 
+                //store the new setting
                 this.fullWindow = tmpFullWindow;
             }
             
@@ -177,16 +224,19 @@ public final class CustomMenu extends Menu implements IElement
             }
             
             super.update(engine.getMouse(), engine.getKeyboard(), engine.getMain().getTime());
+            
+            //if we now have finished the menu flag the engine to reset
+            if (super.hasFinished())
+            {
+                //if we previously weren't in this layer reset the game
+                if (!isInGameOptionsLayer)
+                {
+                    engine.setReset();
+                }
+            }
         }
         else
         {
-            //if resetGame is enabled and the menu is finished reset all game objects within engine
-            if (reset)
-            {
-                reset = false;
-                engine.reset();
-            }
-            
             //the menu has finished and the user has pressed 'escape' so we will bring up the in game options
             if (engine.getKeyboard().hasKeyPressed(KeyEvent.VK_ESCAPE))
             {
@@ -204,7 +254,30 @@ public final class CustomMenu extends Menu implements IElement
     @Override
     public void render(final Graphics graphics)
     {
+        //set menu font
+        graphics.setFont(fonts.get(FontKey.MenuFont).deriveFont(18f));
+        
         super.render(graphics);
+    }
+    
+    /**
+     * Draw the mouse
+     * @param graphics Graphics object used to write mouse
+     * @param mouse Object representing the state of the mouse
+     */
+    public void renderMouse(final Graphics graphics, final Mouse mouse)
+    {
+        if (mouse.getLocation() != null && images != null)
+        {
+            if (mouse.isMouseDragged())
+            {
+                graphics.drawImage(images.get(MouseKey.MouseDrag), mouse.getLocation().x, mouse.getLocation().y, null);
+            }
+            else
+            {
+                graphics.drawImage(images.get(MouseKey.Mouse), mouse.getLocation().x, mouse.getLocation().y, null);
+            }
+        }
     }
     
     @Override
@@ -213,9 +286,22 @@ public final class CustomMenu extends Menu implements IElement
         super.dispose();
         
         if (fullScreen != null)
+        {
             fullScreen.dispose();
+            fullScreen = null;
+        }
         
-        fullScreen = null;
+        if (images != null)
+        {
+            images.dispose();
+            images = null;
+        }
+
+        if (fonts != null)
+        {
+            fonts.dispose();
+            fonts = null;
+        }
         
         previousLayerKey = null;
     }

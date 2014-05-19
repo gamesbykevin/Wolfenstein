@@ -7,30 +7,29 @@ public abstract class BlockManager implements Disposable
     //all blocks in the level
     private Block[][] blocks;
     
-    //the dimensions of each room
-    private final int roomColumns, roomRows;
+    //is a door closing in this room, used to play sound effect
+    private boolean closing = false;
     
-    protected BlockManager(final int columns, final int rows, final int roomColumns, final int roomRows)
+    protected BlockManager(final int columnTotal, final int rowTotal)
     {
-        //how big is each room
-        this.roomColumns = roomColumns;
-        this.roomRows    = roomRows;
-        
-        //create all of the blocks for all of the levels
-        this.blocks  = new Block[(roomRows * rows) + (rows + 1)][(roomColumns * columns) + (columns + 1)];
+        //create an array of these blocks
+        this.blocks  = new Block[rowTotal][columnTotal];
     }
     
     @Override
     public void dispose()
     {
         Block block;
-        
-        for (int row = 0; row < getRows(); row++)
+                
+        for (int row=0; row < blocks.length; row++)
         {
-            for (int col = 0; col < getCols(); col++)
+            for (int col=0; col < blocks[0].length; col++)
             {
                 block = get(col, row);
-                block.dispose();
+                
+                if (block != null)
+                    block.dispose();
+                
                 block = null;
             }
         }
@@ -54,59 +53,92 @@ public abstract class BlockManager implements Disposable
         }
     }
     
-    /**
-     * How many blocks are in each room
-     * @return The total number of block columns per room
-     */
-    public int getRoomColumnTotal()
+    protected int getRowCount()
     {
-        return this.roomColumns;
+        return this.blocks.length;
     }
     
-    /**
-     * How many blocks are in each room
-     * @return The total number of block rows per room
-     */
-    public int getRoomRowTotal()
+    protected int getColumnCount()
     {
-        return this.roomRows;
+        return this.blocks[0].length;
     }
     
-    public Block get(final double column, final double row)
+    protected Block get(final double column, final double row)
     {
         return get((int)column, (int)row);
     }
     
-    public Block get(final int column, final int row)
+    protected Block get(final int column, final int row)
     {
         //if the index is out of bounds return a default solid block
-        if (column < 0 || column >= blocks[0].length || row < 0 || row >= blocks.length)
+        if (column < 0 || column >= getColumnCount() || row < 0 || row >= getRowCount())
             return Block.solidBlock;
         
         return blocks[row][column];
     }
     
-    public void set(final int column, final int row, final Block block)
+    protected Block[][] getBlocks()
+    {
+        return blocks;
+    }
+    
+    protected void set(final int column, final int row, final Block block)
     {
         blocks[row][column] = block;
     }
     
-    
     /**
-     * Get the total number of columns for the entire maze
-     * @return Total number of columns in complete maze
+     * Here we will manage the door animations
+     * @param time Time duration per update to deduct from timer (nano-seconds)
+     * @param playerX Current player's location 
+     * @param playerZ Current player's location
      */
-    public int getCols()
+    public void update(final long time, final double playerX, final double playerZ)
     {
-        return this.blocks[0].length;
+        //default to false
+        this.closing = false;
+        
+        final int distance = 2;
+        
+        for (int row = 0; row < blocks.length; row++)
+        {
+            for (int col = 0; col < blocks[0].length; col++)
+            {
+                //get current block
+                final Block b = get(col, row);
+                
+                //we are only interested in the door(s)
+                if (!b.isDoor())
+                    continue;
+                
+                //check if door is open
+                final boolean isOpen = b.getDoor().isOpen();
+                
+                //if the door is open don't update if the player is to close to it
+                if (isOpen)
+                {
+                    //if the player is close enough to a block, then skip it
+                    if (col >= playerX - distance && col <= playerX + distance &&
+                        row >= playerZ - distance && row <= playerZ + distance)
+                        continue;
+                }
+                
+                //update door status
+                b.getDoor().update(time);
+                
+                //if the current door goes from open to closed
+                if (!b.getDoor().isOpen() && isOpen)
+                    closing = true;
+            }
+        }
     }
     
     /**
-     * Get the total number of rows for the entire maze
-     * @return Total number of rows in complete maze
+     * Is there a block that is just closing?
+     * @return true if a door just started to close, false otherwise
      */
-    public int getRows()
+    public boolean hasClosingDoor()
     {
-        return this.blocks.length;
+        return this.closing;
     }
 }
