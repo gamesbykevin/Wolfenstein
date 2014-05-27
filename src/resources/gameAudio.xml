@@ -13,4 +13,13 @@
     <sound id="DoorOpen">resources/audio/game/sound/DoorOpen.wav</sound>
     <sound id="DoorOpenSecret">resources/audio/game/sound/DoorOpenSecret.wav</sound>
     <sound id="PickupFood">resources/audio/game/sound/PickupFood.wav</sound>
+    <sound id="MachinegunFire">resources/audio/game/sound/MachinegunFire.wav</sound>
+    <sound id="Knife">resources/audio/game/sound/Knife.wav</sound>
+    <sound id="PistolFire">resources/audio/game/sound/PistolFire.wav</sound>
+    <sound id="AssaultRifleFire">resources/audio/game/sound/AssaultRifleFire.wav</sound>
+    <sound id="MainTheme">resources/audio/game/music/Theme.mp3</sound>
+    <sound id="StageMusic">resources/audio/game/music/Stage.mp3</sound>
+    <sound id="MenuMusic">resources/audio/game/music/Menu.mp3</sound>
+    <sound id="HitGoalSwitch">resources/audio/game/sound/HitGoalSwitch.wav</sound>
+    <sound id="DoorLocked">resources/audio/game/sound/DoorLocked.wav</sound>
 </sounds>

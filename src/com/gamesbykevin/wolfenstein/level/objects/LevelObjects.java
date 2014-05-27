@@ -220,14 +220,18 @@ public final class LevelObjects implements Disposable
      */
     public boolean hasObstacleCollision(final double x, final double z)
     {
-        for (Obstacle obstacle : getObstacles())
+        for (int i = 0; i < obstacles.size(); i++)
         {
+            Obstacle obstacle = obstacles.get(i);
+            
             //some obstacles we don't have to check for collision
             if (!obstacle.getType().isSolid())
                 continue;
             
-            for (Cell location : obstacle.getLocations())
+            for (int e = 0; e < obstacle.getLocations().size(); e++)
             {
+                Cell location = obstacle.getLocations().get(e);
+                
                 //set the current location for distance calculation
                 obstacle.setX(location.getCol());
                 obstacle.setY(location.getRow());
@@ -250,10 +254,15 @@ public final class LevelObjects implements Disposable
      */
     public BonusItem.Type getBonusItemCollisionType(final double x, final double z)
     {
-        for (BonusItem bonusItem : getBonusItems())
+        
+        for (int i = 0; i < getBonusItems().size(); i++)
         {
-            for (Cell location : bonusItem.getLocations())
+            BonusItem bonusItem = getBonusItems().get(i);
+            
+            for (int e = 0; e < bonusItem.getLocations().size(); e++)
             {
+                Cell location = bonusItem.getLocations().get(e);
+                
                 //set the current location for distance calculation
                 bonusItem.setX(location.getCol());
                 bonusItem.setY(location.getRow());

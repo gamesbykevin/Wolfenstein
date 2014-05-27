@@ -42,9 +42,9 @@ public abstract class BlockManager implements Disposable
      */
     protected void fill()
     {
-        for (int row=0; row < blocks.length; row++)
+        for (int row=0; row < getRowCount(); row++)
         {
-            for (int col=0; col < blocks[0].length; col++)
+            for (int col=0; col < getColumnCount(); col++)
             {
                 //if any remaining blocks are null then they are empty blocks
                 if (get(col, row) == null)
@@ -53,12 +53,12 @@ public abstract class BlockManager implements Disposable
         }
     }
     
-    protected int getRowCount()
+    public int getRowCount()
     {
         return this.blocks.length;
     }
     
-    protected int getColumnCount()
+    public int getColumnCount()
     {
         return this.blocks[0].length;
     }
@@ -70,9 +70,9 @@ public abstract class BlockManager implements Disposable
     
     protected Block get(final int column, final int row)
     {
-        //if the index is out of bounds return a default solid block
+        //if the index is out of bounds return the static default solid block
         if (column < 0 || column >= getColumnCount() || row < 0 || row >= getRowCount())
-            return Block.solidBlock;
+            return Block.SOLID_BLOCK;
         
         return blocks[row][column];
     }
@@ -114,7 +114,7 @@ public abstract class BlockManager implements Disposable
                 //check if door is open
                 final boolean isOpen = b.getDoor().isOpen();
                 
-                //if the door is open don't update if the player is to close to it
+                //if the door is open we will keep it open if the player is close enough
                 if (isOpen)
                 {
                     //if the player is close enough to a block, then skip it

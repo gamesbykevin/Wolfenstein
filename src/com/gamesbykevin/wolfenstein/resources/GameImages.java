@@ -22,7 +22,8 @@ public final class GameImages extends ImageManager
         Soldier1, Soldier2, Soldier3, BigSoldier, 
         Dog, 
         Boss1, Boss2, Boss3, Boss4, Boss5, 
-        BonusItems
+        BonusItems,
+        PlayerHud, Mugshots
     }
     
     public GameImages() throws Exception

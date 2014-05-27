@@ -1,33 +1,38 @@
 package com.gamesbykevin.wolfenstein.level;
 
+import com.gamesbykevin.framework.labyrinth.Location.Wall;
+
 public class SolidBlock extends Block
 {
     /**
      * Create a new solid block.<br>
-     * This block will not be a door or a secret.
+     * This block isn't a door.
      */
-    public SolidBlock()
+    public SolidBlock(final Wall wall)
     {
-        this(false, false);
+        this(wall, false);
     }
     
     /**
      * Create a new solid block.<br>
      * @param door Is this block a door
      * @param secret Is this door a secret
+     * @param goal Is this block a goal for the player to complete the level
      */
-    public SolidBlock(final boolean door, final boolean secret)
+    
+    public SolidBlock(final Wall wall, final boolean door)
     {
         //call to default constructor
         super();
         
+        //set the side where this block will be
+        super.setWall(wall);
+        
         //yes the block will be solid
         super.setSolid(true);
         
-        //if this is a door create one, and if this is a secret it is definitely a door
-        if (door || secret)
-        {
-            super.createDoor(secret);
-        }
+        //if this is a door create one
+        if (door)
+            super.createDoor();
     }
 }

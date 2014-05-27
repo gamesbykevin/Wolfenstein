@@ -10,7 +10,6 @@ import com.gamesbykevin.framework.menu.*;
 import com.gamesbykevin.framework.resources.FontManager;
 import com.gamesbykevin.framework.resources.ImageManager;
 
-import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 
@@ -148,14 +147,13 @@ public final class CustomMenu extends Menu implements IElement
             //if on the options screen check if sound/fullScreen enabled
             if (super.hasCurrent(LayerKey.Options))
             {
-                //tmpSound = Toggle.values()[getOptionSelectionIndex(LayerKey.Options, OptionKey.Sound)];
                 tmpFullWindow = Toggle.values()[getOptionSelectionIndex(LayerKey.Options, OptionKey.FullScreen)];
             }
             
             //if on the in-game options screen check if sound/fullScreen enabled
             if (isInGameOptionsLayer)
             {
-                tmpSound = Toggle.values()[getOptionSelectionIndex(LayerKey.OptionsInGame, OptionKey.Sound)];
+                tmpSound      = Toggle.values()[getOptionSelectionIndex(LayerKey.OptionsInGame, OptionKey.Sound)];
                 tmpFullWindow = Toggle.values()[getOptionSelectionIndex(LayerKey.OptionsInGame, OptionKey.FullScreen)];
             }
             
@@ -169,12 +167,15 @@ public final class CustomMenu extends Menu implements IElement
             //if the values are not equal to each other a change was made
             if (tmpSound != sound)
             {
-                //stop all currently playing sound
-                if (tmpSound == Toggle.Off)
-                    engine.getResources().stopAllSound();
-                
-                //turn the audio on or off
-                engine.getResources().setAudioEnabled(tmpSound == Toggle.On);
+                if (engine.getResources() != null)
+                {
+                    //stop all currently playing sound
+                    if (tmpSound == Toggle.Off)
+                        engine.getResources().stopAllSound();
+
+                    //turn the audio on or off
+                    engine.getResources().setAudioEnabled(tmpSound == Toggle.On);
+                }
                 
                 //store the new setting
                 this.sound = tmpSound;
@@ -230,9 +231,7 @@ public final class CustomMenu extends Menu implements IElement
             {
                 //if we previously weren't in this layer reset the game
                 if (!isInGameOptionsLayer)
-                {
                     engine.setReset();
-                }
             }
         }
         else
@@ -254,8 +253,11 @@ public final class CustomMenu extends Menu implements IElement
     @Override
     public void render(final Graphics graphics)
     {
-        //set menu font
-        graphics.setFont(fonts.get(FontKey.MenuFont).deriveFont(18f));
+        if (graphics.getFont() != fonts.get(FontKey.MenuFont))
+        {
+            //set menu font
+            graphics.setFont(fonts.get(FontKey.MenuFont).deriveFont(18f));
+        }
         
         super.render(graphics);
     }

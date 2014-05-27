@@ -23,5 +23,5 @@ public interface IEngine extends Disposable
      * 
      * @param main The main class
      */
-    public void update(Main main);
+    public void update(Main main) throws Exception;
 }

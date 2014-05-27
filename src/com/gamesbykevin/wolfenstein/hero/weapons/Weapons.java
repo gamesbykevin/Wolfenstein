@@ -1,6 +1,7 @@
 package com.gamesbykevin.wolfenstein.hero.weapons;
 
 import com.gamesbykevin.framework.resources.Disposable;
+import com.gamesbykevin.framework.util.Timers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +9,8 @@ import java.util.List;
 public final class Weapons implements Disposable
 {
     //setup variables for gun rules
+    private static final int DEFAULT_KNIFE = -1;
+    private static final int MAX_KNIFE = -1;
     private static final int DEFAULT_PISTOL = 50;
     private static final int MAX_PISTOL = 200;
     private static final int DEFAULT_ASSAULT_RIFLE = 100;
@@ -15,9 +18,14 @@ public final class Weapons implements Disposable
     private static final int DEFAULT_MACHINEGUN = 200;
     private static final int MAX_MACHINEGUN = 500;
     
+    public static final long DELAY_KNIFE = Timers.toNanoSeconds(100L);
+    public static final long DELAY_PISTOL = Timers.toNanoSeconds(125L);
+    public static final long DELAY_ASSAULT_RIFLE = Timers.toNanoSeconds(15L);
+    public static final long DELAY_MACHINEGUN = Timers.toNanoSeconds(45L);
+    
     public enum Type
     {
-        Knife(0, 0),
+        Knife(DEFAULT_KNIFE, MAX_KNIFE),
         Pistol(DEFAULT_PISTOL, MAX_PISTOL),
         AssaultRifle(DEFAULT_ASSAULT_RIFLE, MAX_ASSAULT_RIFLE),
         MachineGun(DEFAULT_MACHINEGUN, MAX_MACHINEGUN);
@@ -97,6 +105,15 @@ public final class Weapons implements Disposable
     }
     
     /**
+     * Get the ammo count
+     * @return The number of bullets for the current equipped gun
+     */
+    public int getAmmoCount()
+    {
+        return getWeapon().getCurrent();
+    }
+    
+    /**
      * Get the currently equipped weapon.
      * @return Weapon the player is currently using.
      */
@@ -150,12 +167,14 @@ public final class Weapons implements Disposable
     }
     
     /**
-     * Set the current type of weapon to equip.
+     * Set the current type of weapon to equip.<br>
+     * If the weapon does not exist then it won't be equipped
      * @param type The type of weapon we want to equip
      */
     public void set(final Type type)
     {
-        this.type = type;
+        if (hasWeapon(type))
+            this.type = type;
     }
     
     /**
@@ -168,16 +187,42 @@ public final class Weapons implements Disposable
         //if we already have the weapon add ammo
         if (hasWeapon(type))
         {
-            //get the current weapon
-            Weapon weapon = getWeapon(type);
-            
-            //add ammo to this weapon object
-            weapon.add(weapon.getDefault() / 4);
+            //if the current equipped weapon already has the max ammo add it to another weapon
+            if (type == Type.Knife || getWeapon(type).hasMax())
+            {
+                for (Type tmp : Type.values())
+                {
+                    //skip knife
+                    if (tmp == Type.Knife)
+                        continue;
+                    
+                    //if we have this weapon and don't have the maximum ammo allowed
+                    if (hasWeapon(tmp) && !getWeapon(tmp).hasMax())
+                    {
+                        //add ammo to this weapon object
+                        addAmmo(tmp);
+                        
+                        //exit loop
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                //add ammo to this weapon object
+                addAmmo(type);
+            }
         }
         else
         {
             this.weapons.add(new Weapon(type));
         }
+    }
+    
+    private void addAmmo(final Type type)
+    {
+        //add ammo to this weapon object
+        getWeapon(type).add(getWeapon(type).getDefault() / 4);
     }
     
     /**

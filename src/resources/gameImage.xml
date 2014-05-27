@@ -14,4 +14,6 @@
     <image id="Boss4">resources/images/game/boss4.png</image>
     <image id="Boss5">resources/images/game/boss5.png</image>
     <image id="BonusItems">resources/images/game/bonusItems.png</image>
+    <image id="PlayerHud">resources/images/game/hud.gif</image>
+    <image id="Mugshots">resources/images/game/mugshot.gif</image>
 </images>

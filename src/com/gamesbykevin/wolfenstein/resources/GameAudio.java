@@ -18,7 +18,8 @@ public final class GameAudio extends AudioManager
     {
         PickupAmmo, PickupMachinegun, ExtraLife, PickupChaingun, PickupKey, PickupFood, 
         PickupTreasure1, PickupTreasure2, PickupTreasure3, PickupTreasure4, 
-        DoorClose, DoorOpen, DoorOpenSecret
+        DoorClose, DoorOpen, DoorOpenSecret, MachinegunFire, Knife, PistolFire, AssaultRifleFire,
+        MainTheme, StageMusic, MenuMusic, HitGoalSwitch, DoorLocked
     }
     
     public GameAudio() throws Exception

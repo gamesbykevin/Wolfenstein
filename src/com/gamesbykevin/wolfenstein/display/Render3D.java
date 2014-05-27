@@ -205,13 +205,13 @@ public class Render3D extends Render
         for (int xBlock = startX; xBlock < endX; xBlock++)
         {
             //stay in bounds
-            if (xBlock < 0 || xBlock >= level.getTotalColumns() || !hasRangeX(xBlock))
+            if (xBlock < 0 || xBlock >= level.getColumnCount() || !hasRangeX(xBlock))
                 continue;
             
             for (int zBlock = startZ; zBlock < endZ; zBlock++)
             {
                 //stay in bounds
-                if (zBlock < 0 || zBlock >= level.getTotalRows() || !hasRangeZ(zBlock))
+                if (zBlock < 0 || zBlock >= level.getRowCount() || !hasRangeZ(zBlock))
                     continue;
                 
                 block = level.getBlock(xBlock, zBlock);
@@ -419,18 +419,26 @@ public class Render3D extends Render
      */
     public void renderLevelObjects(final LevelObjects objects)
     {
-        for (BonusItem bonus : objects.getBonusItems())
+        for (int i = 0; i < objects.getBonusItems().size(); i++)
         {
-            for (Cell location : bonus.getLocations())
+            BonusItem bonus = objects.getBonusItems().get(i);
+            
+            for (int x = 0; x < bonus.getLocations().size(); x++)
             {
+                Cell location = bonus.getLocations().get(x);
+                
                 renderSprite(location.getCol(), 0, location.getRow(), 0, bonus.getPixels(), (int)bonus.getWidth(), (int)bonus.getHeight());
             }
         }
         
-        for (Obstacle obstacle : objects.getObstacles())
+        for (int i = 0; i < objects.getObstacles().size(); i++)
         {
-            for (Cell location : obstacle.getLocations())
+            Obstacle obstacle = objects.getObstacles().get(i);
+            
+            for (int x = 0; x < obstacle.getLocations().size(); x++)
             {
+                Cell location = obstacle.getLocations().get(x);
+                
                 renderSprite(location.getCol(), 0, location.getRow(), 0, obstacle.getPixels(), (int)obstacle.getWidth(), (int)obstacle.getHeight());
             }
         }

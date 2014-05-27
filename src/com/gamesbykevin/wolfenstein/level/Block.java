@@ -1,5 +1,6 @@
 package com.gamesbykevin.wolfenstein.level;
 
+import com.gamesbykevin.framework.labyrinth.Location.Wall;
 import com.gamesbykevin.framework.resources.Disposable;
 
 import com.gamesbykevin.wolfenstein.display.Textures.Key;
@@ -13,13 +14,16 @@ public class Block implements Disposable
     private Door door;
     
     //default solid block
-    public static Block solidBlock = new SolidBlock(false, false);
+    public static Block SOLID_BLOCK = new SolidBlock(Wall.West);
     
     //the texture for each side of the block
     private Key north, south, east, west;
     
     //this is block the goal
     private boolean goal = false;
+    
+    //store the side where this block is placed
+    private Wall wall;
     
     protected Block()
     {
@@ -34,11 +38,21 @@ public class Block implements Disposable
         door = null;
     }
     
+    protected void setWall(final Wall wall)
+    {
+        this.wall = wall;
+    }
+    
+    protected Wall getWall()
+    {
+        return this.wall;
+    }
+    
     /**
      * Set this block as the goal for the level
      * @param goal true if this is a goal, false otherwise
      */
-    public void setGoal(final boolean goal)
+    protected void setGoal(final boolean goal)
     {
         this.goal = goal;
     }
@@ -99,15 +113,24 @@ public class Block implements Disposable
     
     /**
      * Create a door for this block
-     * @param secret true if this door is a secret, false otherwise
      */
-    protected void createDoor(final boolean secret)
+    protected void createDoor()
     {
         //create a door
         this.door = new Door();
+    }
+    
+    protected void setSecret(final boolean secret)
+    {
+        //is this a secret and currently we don't have a door
+        if (secret && !isDoor())
+        {
+            //create a door
+            createDoor();
+        }
         
-        //is this door a secret
-        this.door.setSecret(secret);
+        if (isDoor())
+            getDoor().setSecret(secret);
     }
     
     /**

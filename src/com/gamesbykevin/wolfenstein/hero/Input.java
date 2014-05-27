@@ -4,6 +4,7 @@ import com.gamesbykevin.framework.base.Sprite;
 import com.gamesbykevin.framework.input.Keyboard;
 
 import com.gamesbykevin.wolfenstein.display.Render3D;
+import com.gamesbykevin.wolfenstein.hero.weapons.Weapons;
 import com.gamesbykevin.wolfenstein.level.Block;
 import com.gamesbykevin.wolfenstein.level.Level;
 import com.gamesbykevin.wolfenstein.level.objects.BonusItem;
@@ -30,7 +31,7 @@ public final class Input extends Sprite
     private int column, row;
     
     //the speed the player moves while crouching
-    //private final double speedCrouch = 0.5;
+    private final double speedCrouch = 0.5;
     
     //the speed the player moves while running
     private final double speedRun    = 3.5;
@@ -41,39 +42,28 @@ public final class Input extends Sprite
     //how fast can the player turn
     private final double rotationSpeed = 0.055;
     
-    /**
-     * Here is all of our input options
-     */
-    private enum InputOptions
-    {
-        WalkForward(KeyEvent.VK_UP),
-        WalkBackward(KeyEvent.VK_DOWN),
-        StrafeLeft(KeyEvent.VK_A),
-        StrafeRight(KeyEvent.VK_D),
-        TurnLeft(KeyEvent.VK_LEFT),
-        TurnRight(KeyEvent.VK_RIGHT),
-        Crouch(KeyEvent.VK_Z),
-        Jump(KeyEvent.VK_SPACE),
-        Run(KeyEvent.VK_X),
-        OpenDoor(KeyEvent.VK_SPACE),
-        Shoot(KeyEvent.VK_ENTER);
-        
-        private final int key;
-        
-        private InputOptions(final int key)
-        {
-            this.key = key;
-        }
-        
-        private int getKey()
-        {
-            return this.key;
-        }
-    }
+    //are we playing sound for gun fire
+    private boolean play = false;
+    
+    //Here is all of our input options
+    private static final int KEY_WEAPON_SELECT_1 = KeyEvent.VK_1;
+    private static final int KEY_WEAPON_SELECT_2 = KeyEvent.VK_2;
+    private static final int KEY_WEAPON_SELECT_3 = KeyEvent.VK_3;
+    private static final int KEY_WEAPON_SELECT_4 = KeyEvent.VK_4;
+    private static final int KEY_WALK_FORWARD = KeyEvent.VK_UP;
+    private static final int KEY_WALK_BACKWARD = KeyEvent.VK_DOWN;
+    private static final int KEY_STRAFE_LEFT = KeyEvent.VK_A;
+    private static final int KEY_STRAFE_RIGHT = KeyEvent.VK_D;
+    private static final int KEY_TURN_LEFT = KeyEvent.VK_LEFT;
+    private static final int KEY_TURN_RIGHT = KeyEvent.VK_RIGHT;
+    private static final int KEY_CROUCH = KeyEvent.VK_Z;
+    private static final int KEY_JUMP = KeyEvent.VK_S;
+    private static final int KEY_RUN = KeyEvent.VK_X;
+    private static final int KEY_OPEN_DOOR = KeyEvent.VK_SPACE;
+    private static final int KEY_SHOOT = KeyEvent.VK_ENTER;
     
     protected Input()
     {
-        
     }
     
     /**
@@ -88,30 +78,133 @@ public final class Input extends Sprite
     {
         int xMove = 0;
         int zMove = 0;
-        //double jumpHeight = 1;
-        //double crouchHeight = 2;
+        double jumpHeight = 1;
+        double crouchHeight = 2;
         double speed = speedWalk;
         
-        for (InputOptions inputOption : InputOptions.values())
+        final boolean selectWeapon1 = keyboard.hasKeyPressed(KEY_WEAPON_SELECT_1);
+        final boolean selectWeapon2 = keyboard.hasKeyPressed(KEY_WEAPON_SELECT_2);
+        final boolean selectWeapon3 = keyboard.hasKeyPressed(KEY_WEAPON_SELECT_3);
+        final boolean selectWeapon4 = keyboard.hasKeyPressed(KEY_WEAPON_SELECT_4);
+        
+        boolean right = keyboard.hasKeyPressed(KEY_STRAFE_RIGHT);
+        boolean left = keyboard.hasKeyPressed(KEY_STRAFE_LEFT);
+        boolean up = keyboard.hasKeyPressed(KEY_WALK_FORWARD);
+        boolean down = keyboard.hasKeyPressed(KEY_WALK_BACKWARD);
+        boolean turnLeft = keyboard.hasKeyPressed(KEY_TURN_LEFT);
+        boolean turnRight = keyboard.hasKeyPressed(KEY_TURN_RIGHT);
+        boolean jump = false;//keyboard.hasKeyPressed(KEY_JUMP);
+        boolean crouch = false;//keyboard.hasKeyPressed(KEY_CROUCH);
+        boolean run = keyboard.hasKeyPressed(KEY_RUN);
+        boolean openDoor = keyboard.hasKeyPressed(KEY_OPEN_DOOR);
+        boolean openDoorRelease = keyboard.hasKeyReleased(KEY_OPEN_DOOR);
+        boolean shoot = keyboard.hasKeyPressed(KEY_SHOOT);
+        
+        //check all inputs
+        manageKeyboard(keyboard);
+        
+        //set the weapon
+        if (selectWeapon1)
         {
-            if (keyboard.hasKeyReleased(inputOption.getKey()))
+            if (hero.getSpriteSheet().hasFinished() || !hero.getSpriteSheet().hasStarted())
+                hero.getWeapons().set(Weapons.Type.Knife);
+        }
+        else if (selectWeapon2)
+        {
+            if (hero.getSpriteSheet().hasFinished() || !hero.getSpriteSheet().hasStarted())
+                hero.getWeapons().set(Weapons.Type.Pistol);
+        }
+        else if (selectWeapon3)
+        {
+            if (hero.getSpriteSheet().hasFinished() || !hero.getSpriteSheet().hasStarted())
+                hero.getWeapons().set(Weapons.Type.AssaultRifle);
+        }
+        else if (selectWeapon4)
+        {
+            if (hero.getSpriteSheet().hasFinished() || !hero.getSpriteSheet().hasStarted())
+                hero.getWeapons().set(Weapons.Type.MachineGun);
+        }
+        else
+        {
+            //player wants to shoot
+            if (shoot)
             {
-                keyboard.removeKeyPressed(inputOption.getKey());
-                keyboard.removeKeyReleased(inputOption.getKey());
+                //if shooting can't run
+                run = false;
+                
+                //if the current animation has finished or not started yet, then we can shoot
+                if (hero.getSpriteSheet().hasFinished() || !hero.getSpriteSheet().hasStarted())
+                {
+                    //if a bullet was fired
+                    if (hero.getWeapons().shoot())
+                    {
+                        //flag change
+                        hero.flagChange();
+                        
+                        //set the appropriate sprite sheet
+                        hero.getSpriteSheet().setCurrent(hero.getWeapons().getType());
+
+                        //don't pause animation
+                        hero.getSpriteSheet().setPause(false);
+
+                        if (!play)
+                        {
+                            play = true;
+                            
+                            switch (hero.getWeapons().getType())
+                            {
+                                case Knife:
+                                    //play sound effect
+                                    resources.playGameAudio(GameAudio.Keys.Knife, true);
+                                    break;
+
+                                case Pistol:
+                                    //play sound effect
+                                    resources.playGameAudio(GameAudio.Keys.PistolFire, true);
+                                    break;
+
+                                case AssaultRifle:
+                                    //play sound effect
+                                    resources.playGameAudio(GameAudio.Keys.AssaultRifleFire, true);
+                                    break;
+
+                                case MachineGun:
+                                    //play sound effect
+                                    resources.playGameAudio(GameAudio.Keys.MachinegunFire, true);
+                                    break;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                //if the animation has finished or not started stop the sound
+                if (hero.getSpriteSheet().hasFinished() || !hero.getSpriteSheet().hasStarted())
+                {
+                    //if not shooting stop audio
+                    resources.stopGameAudio(GameAudio.Keys.Knife);
+                    resources.stopGameAudio(GameAudio.Keys.PistolFire);
+                    resources.stopGameAudio(GameAudio.Keys.AssaultRifleFire);
+                    resources.stopGameAudio(GameAudio.Keys.MachinegunFire);
+                    
+                    //stop sound
+                    play = false;
+                }
             }
         }
         
-        boolean right = keyboard.hasKeyPressed(InputOptions.StrafeRight.getKey());
-        boolean left = keyboard.hasKeyPressed(InputOptions.StrafeLeft.getKey());
-        boolean up = keyboard.hasKeyPressed(InputOptions.WalkForward.getKey());
-        boolean down = keyboard.hasKeyPressed(InputOptions.WalkBackward.getKey());
-        boolean turnLeft = keyboard.hasKeyPressed(InputOptions.TurnLeft.getKey());
-        boolean turnRight = keyboard.hasKeyPressed(InputOptions.TurnRight.getKey());
-        //boolean jump = keyboard.hasKeyPressed(InputOptions.Jump.getKey());
-        //boolean crouch = keyboard.hasKeyPressed(InputOptions.Crouch.getKey());
-        boolean run = keyboard.hasKeyPressed(InputOptions.Run.getKey());
-        boolean openDoor = keyboard.hasKeyPressed(InputOptions.OpenDoor.getKey());
-        boolean shoot = keyboard.hasKeyPressed(InputOptions.Shoot.getKey());
+        if (!shoot)
+        {
+            //if weapon selection has changed set the correct animation
+            if (selectWeapon1 || selectWeapon2 || selectWeapon3 || selectWeapon4)
+            {
+                //flag change
+                hero.flagChange();
+                
+                hero.getSpriteSheet().setCurrent(hero.getWeapons().getType());
+            }
+        }
         
         //you can't do both at same time
         if (up)
@@ -165,15 +258,12 @@ public final class Input extends Sprite
         if (!turnLeft && !turnRight)
             rotationa = 0;
         
-        /*
         if (jump)
         {
             setY(getY() + jumpHeight);
             run = false;
         }
-        */
         
-        /*
         //this is to crouch the player
         if (crouch)
         {
@@ -181,7 +271,6 @@ public final class Input extends Sprite
             run = false;
             speed = speedCrouch;
         }
-        */
         
         //if we are running increase speed
         if (run)
@@ -245,7 +334,7 @@ public final class Input extends Sprite
 
         //now that the position is set calculate where the player is on the overall level
         this.column = (int)(getX() / 16);
-        this.row = (int)(getZ() / 16);
+        this.row    = (int)(getZ() / 16);
                 
         //slow down speed
         setXA(getXA() * 0.1);
@@ -270,179 +359,293 @@ public final class Input extends Sprite
             rotationa *= 0.5;
         }
         
-        //check if the player is trying to open a door
+        //check if the player opened a door
         if (openDoor)
-        {
-            //temp block object
-            Block block;
-            
-            //check any blocks within this range
-            final int distance = 2;
-
-            //now check all blocks surrounding the player
-            for (int x = -distance; x <= distance; x++)
-            {
-                for (int z = -distance; z <= distance; z++)
-                {
-                    //get the current block
-                    block = level.getBlock(originalX + x, originalZ + z);
-
-                    //if this block is a door
-                    if (block.isDoor())
-                    {
-                        //if the door is locked
-                        if (block.getDoor().isLocked())
-                        {
-                            //check if the hero has a key
-                            if (hero.hasKey())
-                            {
-                                //remove 1 key from inventory
-                                hero.removeKey();
-                                
-                                //the door is no longer locked
-                                block.getDoor().setLocked(false);
-                            }
-                            else
-                            {
-                                //we do not have a key so don't continue
-                                continue;
-                            }
-                        }
-                        
-                        //only play sound when door is closed and about to be opened
-                        if (block.getDoor().isClosed())
-                        {
-                            //if the door is a secret one play different audio
-                            if (block.getDoor().isSecret())
-                            {
-                                //play sound effect
-                                resources.playGameAudio(GameAudio.Keys.DoorOpenSecret);
-                            }
-                            else
-                            {
-                                //play sound effect
-                                resources.playGameAudio(GameAudio.Keys.DoorOpen);
-                            }
-                        }
-                        
-                        //open the door
-                        block.getDoor().open();
-                    }
-                    
-                    //if we have selected the goal
-                    if (block.isGoal())
-                    {
-                        //make sure player is inside the goal
-                        if (level.insideGoal(getPlayerX(), getPlayerZ()))
-                        {
-                            //mark the level as complete
-                            level.markComplete(block);
-                        }
-                    }
-                }
-            }
-        }
+            manageDoors(level, hero, resources, originalX, originalZ, openDoorRelease);
         
         //get the bonus item at the players current location
         BonusItem.Type type = level.getLevelObjects().getBonusItemCollisionType(originalX, originalZ);
         
         //a bonus item was found
         if (type != null)
+            manageBonus(type, hero, resources);
+    }
+    
+    private void manageKeyboard(final Keyboard keyboard)
+    {
+        if (keyboard.hasKeyReleased(KEY_OPEN_DOOR))
         {
-            switch (type)
+            keyboard.removeKeyPressed(KEY_OPEN_DOOR);
+            keyboard.removeKeyReleased(KEY_OPEN_DOOR);
+        }
+        
+        if (keyboard.hasKeyReleased(KEY_SHOOT))
+        {
+            keyboard.removeKeyPressed(KEY_SHOOT);
+            keyboard.removeKeyReleased(KEY_SHOOT);
+        }
+        
+        if (keyboard.hasKeyReleased(KEY_RUN))
+        {
+            keyboard.removeKeyPressed(KEY_RUN);
+            keyboard.removeKeyReleased(KEY_RUN);
+        }
+        
+        if (keyboard.hasKeyReleased(KEY_JUMP))
+        {
+            keyboard.removeKeyPressed(KEY_JUMP);
+            keyboard.removeKeyReleased(KEY_JUMP);
+        }
+        
+        if (keyboard.hasKeyReleased(KEY_CROUCH))
+        {
+            keyboard.removeKeyPressed(KEY_CROUCH);
+            keyboard.removeKeyReleased(KEY_CROUCH);
+        }
+        
+        if (keyboard.hasKeyReleased(KEY_TURN_RIGHT))
+        {
+            keyboard.removeKeyPressed(KEY_TURN_RIGHT);
+            keyboard.removeKeyReleased(KEY_TURN_RIGHT);
+        }
+    
+        if (keyboard.hasKeyReleased(KEY_TURN_LEFT))
+        {
+            keyboard.removeKeyPressed(KEY_TURN_LEFT);
+            keyboard.removeKeyReleased(KEY_TURN_LEFT);
+        }
+        
+        if (keyboard.hasKeyReleased(KEY_STRAFE_RIGHT))
+        {
+            keyboard.removeKeyPressed(KEY_STRAFE_RIGHT);
+            keyboard.removeKeyReleased(KEY_STRAFE_RIGHT);
+        }
+    
+        if (keyboard.hasKeyReleased(KEY_STRAFE_LEFT))
+        {
+            keyboard.removeKeyPressed(KEY_STRAFE_LEFT);
+            keyboard.removeKeyReleased(KEY_STRAFE_LEFT);
+        }
+        
+        if (keyboard.hasKeyReleased(KEY_WALK_BACKWARD))
+        {
+            keyboard.removeKeyPressed(KEY_WALK_BACKWARD);
+            keyboard.removeKeyReleased(KEY_WALK_BACKWARD);
+        }
+        
+        if (keyboard.hasKeyReleased(KEY_WALK_FORWARD))
+        {
+            keyboard.removeKeyPressed(KEY_WALK_FORWARD);
+            keyboard.removeKeyReleased(KEY_WALK_FORWARD);
+        }
+        
+        if (keyboard.hasKeyReleased(KEY_WEAPON_SELECT_1))
+        {
+            keyboard.removeKeyPressed(KEY_WEAPON_SELECT_1);
+            keyboard.removeKeyReleased(KEY_WEAPON_SELECT_1);
+        }
+        
+        if (keyboard.hasKeyReleased(KEY_WEAPON_SELECT_2))
+        {
+            keyboard.removeKeyPressed(KEY_WEAPON_SELECT_2);
+            keyboard.removeKeyReleased(KEY_WEAPON_SELECT_2);
+        }
+        
+        if (keyboard.hasKeyReleased(KEY_WEAPON_SELECT_3))
+        {
+            keyboard.removeKeyPressed(KEY_WEAPON_SELECT_3);
+            keyboard.removeKeyReleased(KEY_WEAPON_SELECT_3);
+        }
+        
+        if (keyboard.hasKeyReleased(KEY_WEAPON_SELECT_4))
+        {
+            keyboard.removeKeyPressed(KEY_WEAPON_SELECT_4);
+            keyboard.removeKeyReleased(KEY_WEAPON_SELECT_4);
+        }
+    }
+    
+    private void manageDoors(final Level level, final Hero hero, final Resources resources, final double originalX, final double originalZ, final boolean openDoorRelease) throws Exception
+    {
+        //temp block object
+        Block block;
+
+        //check any blocks within this range
+        final int distance = 2;
+
+        //now check all blocks surrounding the player
+        for (int x = -distance; x <= distance; x++)
+        {
+            for (int z = -distance; z <= distance; z++)
             {
-                case Key1:
-                case Key2:
-                    //add key to inventory
-                    hero.addKey();
-                    
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.PickupKey);
-                    break;
-                    
-                case SmallFood:
-                    //add health
-                    hero.modifyHealth(Hero.SMALL_HEALTH);
+                //get the current block
+                block = level.getBlock(originalX + x, originalZ + z);
 
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.PickupFood);
-                    break;
-                    
-                case HealthKit:
-                    //add health
-                    hero.modifyHealth(Hero.HEALTH_KIT);
+                //if this block is a door
+                if (block.isDoor())
+                {
+                    //if the door is locked
+                    if (block.getDoor().isLocked())
+                    {
+                        //check if the hero has a key
+                        if (hero.hasKey())
+                        {
+                            //flag change
+                            hero.flagChange();
 
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.PickupFood);
-                    break;
-                    
-                case AmmoClip:
-                    //add to hero
-                    hero.add(type);
+                            //remove 1 key from inventory
+                            hero.removeKey();
 
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.PickupAmmo);
-                    break;
-                    
-                case AssaultGun:
-                    //add to hero
-                    hero.add(type);
-                    
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.PickupMachinegun);
-                    break;
+                            //the door is no longer locked
+                            block.getDoor().setLocked(false);
+                        }
+                        else
+                        {
+                            if (openDoorRelease)
+                            {
+                                //play sound effect
+                                resources.playGameAudio(GameAudio.Keys.DoorLocked);
+                            }
 
-                case MachineGun:
-                    //add to hero
-                    hero.add(type);
-                    
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.PickupChaingun);
-                    break;
-                    
-                case Treasure1:
-                    //add to score
-                    hero.addScore(Hero.TREASURE_1);
-                    
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.PickupTreasure1);
-                    break;
-                    
-                case Treasure2:
-                    //add to score
-                    hero.addScore(Hero.TREASURE_2);
-                    
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.PickupTreasure2);
-                    break;
-                    
-                case Treasure3:
-                    //add to score
-                    hero.addScore(Hero.TREASURE_3);
-                    
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.PickupTreasure3);
-                    break;
-                    
-                case Treasure4:
-                    //add to score
-                    hero.addScore(Hero.TREASURE_4);
-                    
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.PickupTreasure4);
-                    break;
-                    
-                case ExtraLife:
-                    //add life
-                    hero.setLives(hero.getLives() + 1);
-                    
-                    //play sound effect
-                    resources.playGameAudio(GameAudio.Keys.ExtraLife);
-                    break;
-                    
-                default:
-                    throw new Exception("Bonus Type not handled here");
+                            //we do not have a key so don't continue
+                            continue;
+                        }
+                    }
+
+                    //only play sound when door is closed and about to be opened
+                    if (block.getDoor().isClosed())
+                    {
+                        //if the door is a secret one play different audio
+                        if (block.getDoor().isSecret())
+                        {
+                            //play sound effect
+                            resources.playGameAudio(GameAudio.Keys.DoorOpenSecret);
+                        }
+                        else
+                        {
+                            //play sound effect
+                            resources.playGameAudio(GameAudio.Keys.DoorOpen);
+                        }
+                    }
+
+                    //open the door
+                    block.getDoor().open();
+                }
+
+                //if we have selected the goal and the level isn't complete yet
+                if (block.isGoal() && !level.isComplete())
+                {
+                    //make sure player is inside the goal
+                    if (level.insideGoal(getPlayerX(), getPlayerZ()))
+                    {
+                        //mark the level as complete
+                        level.markComplete(block);
+
+                        //play sound effect
+                        resources.playGameAudio(GameAudio.Keys.HitGoalSwitch);
+                    }
+                }
             }
+        }
+    }
+    
+    private void manageBonus(final BonusItem.Type type, final Hero hero, final Resources resources) throws Exception
+    {
+        //flag change
+        hero.flagChange();
+
+        switch (type)
+        {
+            case Key1:
+            case Key2:
+                //add key to inventory
+                hero.addKey();
+
+                //play sound effect
+                resources.playGameAudio(GameAudio.Keys.PickupKey);
+                break;
+
+            case SmallFood:
+                //add health
+                hero.modifyHealth(Hero.SMALL_HEALTH);
+
+                //play sound effect
+                resources.playGameAudio(GameAudio.Keys.PickupFood);
+                break;
+
+            case HealthKit:
+                //add health
+                hero.modifyHealth(Hero.HEALTH_KIT);
+
+                //play sound effect
+                resources.playGameAudio(GameAudio.Keys.PickupFood);
+                break;
+
+            case AmmoClip:
+                //add to hero
+                hero.add(type);
+
+                //play sound effect
+                resources.playGameAudio(GameAudio.Keys.PickupAmmo);
+                break;
+
+            case AssaultGun:
+                //add to hero
+                hero.add(type);
+
+                //play sound effect
+                resources.playGameAudio(GameAudio.Keys.PickupMachinegun);
+                break;
+
+            case MachineGun:
+                //add to hero
+                hero.add(type);
+
+                //play sound effect
+                resources.playGameAudio(GameAudio.Keys.PickupChaingun);
+                break;
+
+            case Treasure1:
+                //add to score
+                hero.addScore(Hero.TREASURE_1);
+
+                //play sound effect
+                resources.playGameAudio(GameAudio.Keys.PickupTreasure1);
+                break;
+
+            case Treasure2:
+                //add to score
+                hero.addScore(Hero.TREASURE_2);
+
+                //play sound effect
+                resources.playGameAudio(GameAudio.Keys.PickupTreasure2);
+                break;
+
+            case Treasure3:
+                //add to score
+                hero.addScore(Hero.TREASURE_3);
+
+                //play sound effect
+                resources.playGameAudio(GameAudio.Keys.PickupTreasure3);
+                break;
+
+            case Treasure4:
+                //add to score
+                hero.addScore(Hero.TREASURE_4);
+
+                //play sound effect
+                resources.playGameAudio(GameAudio.Keys.PickupTreasure4);
+                break;
+
+            case ExtraLife:
+                //add life
+                hero.setLives(hero.getLives() + 1);
+
+                //play sound effect
+                resources.playGameAudio(GameAudio.Keys.ExtraLife);
+                break;
+
+            default:
+                throw new Exception("Bonus Type not handled here");
         }
     }
     

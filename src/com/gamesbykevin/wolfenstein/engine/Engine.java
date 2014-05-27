@@ -113,7 +113,7 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
     }
     
     @Override
-    public void update(Main main)
+    public void update(Main main) throws Exception
     {
         try
         {
@@ -121,7 +121,7 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
             {
                 //create new menu
                 menu = new CustomMenu(this);
-                
+
                 //reset mouse and keyboard input
                 resetInput();
             }
@@ -143,7 +143,7 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
                     //if our resources object is empty create a new one
                     if (resources == null)
                         this.resources = new Resources();
-                    
+
                     //check if we are still loading resources
                     if (resources.isLoading())
                     {
@@ -155,12 +155,12 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
                         //create new manager because at this point our resources have loaded
                         if (manager == null)
                             manager = new Manager(this);
-                            
+
                         //update main game logic
                         manager.update(this);
                     }
                 }
-                
+
                 //if the mouse is released reset all mouse events
                 if (mouse.isMouseReleased())
                     mouse.reset();
@@ -247,6 +247,9 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
             //draw game elements
             if (manager != null)
             {
+                //set default font
+                graphics.setFont(font);
+                
                 manager.render(graphics);
             }
             
@@ -264,7 +267,7 @@ public final class Engine implements KeyListener, MouseMotionListener, MouseList
     private void renderMenu(Graphics graphics) throws Exception
     {
         //if menu is setup draw menu
-        if (menu.isSetup())
+        if (menu.isSetup() && !menu.hasFinished())
             menu.render(graphics);
 
         //if menu is finished and we don't want to hide the mouse cursor then draw it, or if the menu is not finished draw it

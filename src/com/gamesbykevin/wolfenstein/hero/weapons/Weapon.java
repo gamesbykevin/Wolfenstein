@@ -3,6 +3,7 @@ package com.gamesbykevin.wolfenstein.hero.weapons;
 import com.gamesbykevin.framework.resources.Disposable;
 
 import com.gamesbykevin.wolfenstein.hero.weapons.Weapons.Type;
+import com.gamesbykevin.wolfenstein.shared.Shared;
 
 public final class Weapon implements Disposable
 {
@@ -40,6 +41,9 @@ public final class Weapon implements Disposable
             setCurrent(getMax());
         if (getCurrent() < 0)
             setCurrent(0);
+        
+        if (Shared.DEBUG)
+            System.out.println("Weapon Type: " + type + ". Ammo set to: " + getCurrent());
     }
     
     /**
@@ -48,7 +52,7 @@ public final class Weapon implements Disposable
      */
     protected boolean hasAmmunition()
     {
-        return (getCurrent() > 0);
+        return (getCurrent() != 0);
     }
     
     /**
@@ -73,7 +77,7 @@ public final class Weapon implements Disposable
      * Get the current amount of bullets
      * @return the number of bullets ranging from 0 - maximum allowed
      */
-    private int getCurrent()
+    protected int getCurrent()
     {
         return this.current;
     }
@@ -108,6 +112,9 @@ public final class Weapon implements Disposable
     protected void shoot()
     {
         setCurrent(getCurrent() - 1);
+        
+        if (Shared.DEBUG)
+            System.out.println("Shoot - Weapon Type: " + type + ". Ammo currently: " + getCurrent());
     }
     
 }

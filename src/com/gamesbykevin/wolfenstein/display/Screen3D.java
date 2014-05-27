@@ -65,7 +65,7 @@ public final class Screen3D extends Render implements Disposable
         resetPixelData();
         
         //set hero input first to do 3d rendering in perspective to where the player is located
-        render3d.update(engine.getManager().getPlayer().getInput());
+        render3d.update(engine.getManager().getHero().getInput());
         
         //draw floor/ceiling
         render3d.renderTopBottom(engine.getManager().getTextures());

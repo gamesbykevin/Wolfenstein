@@ -41,8 +41,8 @@ public final class Manager implements IManager
     //this screen will render our 3d objects
     public Screen3D screen;
     
-    //our player in the game
-    private Hero player;
+    //our hero in the game
+    private Hero hero;
     
     //the object containing the level info
     private Level level;
@@ -75,82 +75,88 @@ public final class Manager implements IManager
     {
         //calculate the game window where game play will occur
         this.window = new Rectangle(engine.getMain().getScreen());
-        
+
         //create container for game font
         this.fonts = new FontManager(Resources.XML_CONFIG_GAME_FONT);
-        
+
         //load all font resources
         while (!fonts.isComplete())
         {
             fonts.update(engine.getMain().getContainerClass());
         }
-        
+
         //verify everything is specified
         fonts.verifyLocations(GameFont.Keys.values());
-        
+
         //now update the Font with the new Font size
         fonts.set(GameFont.Keys.GameFont, fonts.get(GameFont.Keys.GameFont).deriveFont(DEFAULT_FONT_SIZE));
+
+        double startCol = 4;
+        double startRow = 4;
+
+        this.hero = new Hero(
+            engine.getResources().getGameImage(GameImages.Keys.Guns), 
+            engine.getResources().getGameImage(GameImages.Keys.PlayerHud), 
+            engine.getResources().getGameImage(GameImages.Keys.Mugshots));
+        this.hero.setLevelLocation(startCol * 16, startRow * 16);
         
-        int startCol = 4;
-        int startRow = 4;
+        //place the hero appropriately on the window along with the hud
+        this.hero.setDimensions(192, 192);
+        this.hero.setHeroLocation(window.x + (window.getWidth() / 2), window.y + window.getHeight());
         
-        this.player = new Hero();
-        this.player.setLocation(startCol * 16, startRow * 16);
-        
+        //create the textures for the walls
         this.textures = new Textures(engine.getResources().getGameImage(GameImages.Keys.WallTextures));
-        
+
         //create a new level
-        this.createLevel(4, 4, 11, 11, engine.getRandom(), engine.getResources().getGameImage(GameImages.Keys.Obstacles), engine.getResources().getGameImage(GameImages.Keys.BonusItems));
-        
+        this.createLevel(8, 10, engine.getRandom(), engine.getResources().getGameImage(GameImages.Keys.Obstacles), engine.getResources().getGameImage(GameImages.Keys.BonusItems));
+
         //create new texture and set pixel data array
         //this.wall = new Texture();
         //this.wall.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 0, 0);
-        
+
         //create new texture and set pixel data array
         //this.floor = new Texture();
         //this.floor.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 4, 3);
-        
+
         //create new texture and set pixel data array
         //this.ceiling = new Texture();
         //this.ceiling.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 0, 7);
-        
+
         //this.sprite = new Texture(engine.getResources().getGameImage(GameImage.Keys.Soldier1), 0, 0);
-        
+
         this.soldier = new Soldier1();
         this.soldier.setImage(engine.getResources().getGameImage(GameImages.Keys.Soldier1));
-        
+
         //create new canvas
         this.screen = new Screen3D(window.width, window.height);
-        
-        
-        
+
+
+
         //BufferStrategy bs = 
-        
+
         //get the menu object
         //final Menu menu = engine.getMenu();
-       
+
         //the starting difficulty level
         //this.difficultyIndex = menu.getOptionSelectionIndex(CustomMenu.LayerKey.Options, CustomMenu.OptionKey.Difficulty);
-        
+
         //pick random key
         //GameImage.Keys key = keys.get(engine.getRandom().nextInt(keys.size()));
-        
+
         //create new background
         //this.background = new Background(engine.getResources().getGameImage(key), window.getWidth(), window.y + window.height);
     }
     
     /**
      * Create a new level.
-     * @param roomCol The number of rooms
-     * @param roomRow The number of rooms
-     * @param eachRoomCol The size of each room
-     * @param eachRoomRow The size of each room
+     * @param mazeDimensions The size of the maze
+     * @param roomDimensions The size of each room
      * @throws Exception 
      */
-    private void createLevel(final int roomCol, final int roomRow, final int eachRoomCol, final int eachRoomRow, final Random random, final Image obstacleSpriteSheet, final Image bonusItemSpriteSheet) throws Exception
+    private void createLevel(final int mazeDimensions, final int roomDimensions, final Random random, final Image obstacleSpriteSheet, final Image bonusItemSpriteSheet) throws Exception
     {
         //create a new level
-        this.level = new Level(roomCol, roomRow, eachRoomCol, eachRoomRow, random, obstacleSpriteSheet, bonusItemSpriteSheet);
+        this.level = new Level(mazeDimensions, roomDimensions, random, obstacleSpriteSheet, bonusItemSpriteSheet);
     }
     
     /**
@@ -167,9 +173,9 @@ public final class Manager implements IManager
         return this.textures;
     }
     
-    public Hero getPlayer()
+    public Hero getHero()
     {
-        return this.player;
+        return this.hero;
     }
     
     public Level getLevel()
@@ -188,8 +194,8 @@ public final class Manager implements IManager
         screen.dispose();
         screen = null;
 
-        player.dispose();
-        player = null;
+        hero.dispose();
+        hero = null;
         
         level.dispose();
         level = null;
@@ -207,17 +213,29 @@ public final class Manager implements IManager
     @Override
     public void update(final Engine engine) throws Exception
     {
-        //update our player object
-        player.update(engine);
-        
-        //update level status
-        level.update(engine.getMain().getTime(), player.getInput().getPlayerX(), player.getInput().getPlayerZ(), engine.getResources());
-        
-        //update soldier animation
-        soldier.update(engine.getMain().getTime());
-        
-        //write our 3d screen objects etc.. to pixel array
-        screen.renderPixelData(engine, soldier);
+        if (level.isLevelCreated())
+        {
+            //update our hero object
+            hero.update(engine);
+
+            //update level status
+            level.update(
+                engine.getMain().getTime(), 
+                hero.getInput().getPlayerX(), 
+                hero.getInput().getPlayerZ(), 
+                engine.getResources());
+            
+            //update soldier animation
+            soldier.update(engine.getMain().getTime());
+
+            //write our 3d screen objects etc.. to pixel array
+            screen.renderPixelData(engine, soldier);
+        }
+        else
+        {
+            //continue to generate level
+            level.update(engine.getRandom());
+        }
     }
     
     /**
@@ -227,10 +245,21 @@ public final class Manager implements IManager
     @Override
     public void render(final Graphics graphics)
     {
-        //set the font
-        graphics.setFont(fonts.get(GameFont.Keys.GameFont));
-        
-        //draw the buffered image
-        graphics.drawImage(screen.getImage(), 0, 0, window.width, window.height, null);
+        if (level.isLevelCreated())
+        {
+            //set the font
+            graphics.setFont(fonts.get(GameFont.Keys.GameFont));
+
+            //draw the buffered image
+            graphics.drawImage(screen.getImage(), 0, 0, window.width, window.height, null);
+
+            //draw hero
+            hero.render(graphics);
+        }
+        else
+        {
+            //draw progress
+            level.renderProgress(graphics, window);
+        }
     }
 }
