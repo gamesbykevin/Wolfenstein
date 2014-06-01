@@ -3,6 +3,7 @@ package com.gamesbykevin.wolfenstein.display;
 import com.gamesbykevin.framework.resources.Disposable;
 
 import java.awt.image.BufferedImage;
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Rectangle;
@@ -18,6 +19,9 @@ public final class Texture extends Render implements Disposable
     
     //our graphics object for drawing
     private Graphics2D graphics;
+    
+    //transparent color
+    public static final Color TRANSPARENT_COLOR = new Color(0,0,0,0);
     
     /**
      * 
@@ -40,7 +44,10 @@ public final class Texture extends Render implements Disposable
         this.bufferedImage = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
         
         //get our graphics object
-        this.graphics = bufferedImage.createGraphics();
+        graphics = bufferedImage.createGraphics();
+        
+        //set the background for transparency
+        graphics.setBackground(TRANSPARENT_COLOR);
     }
     
     @Override
@@ -91,16 +98,16 @@ public final class Texture extends Render implements Disposable
      * @param image An image that we want to grab a section of
      * @param x Start x coordinate we want to grab from image
      * @param y Start y coordinate we want to grab from image
-     * @param width Width we want to extend to
-     * @param height Height we want to extend to
+     * @param w Width we want to extend to
+     * @param h Height we want to extend to
      */
-    public void update(final Image image, final int x, final int y, final int width, final int height)
+    private void update(final Image image, final int x, final int y, final int w, final int h)
     {
-        //clear pixel data
+        //clear pixel data with the transparent color
         graphics.clearRect(0, 0, WIDTH, HEIGHT);
         
         //write image to buffered image
-        graphics.drawImage(image, 0, 0, WIDTH, HEIGHT, x, y, x + width, y + height, null);
+        graphics.drawImage(image, 0, 0, WIDTH, HEIGHT, x, y, x + w, y + h, null);
         
         //copy array data to temp pixels
         bufferedImage.getRGB(0, 0, WIDTH, HEIGHT, getPixels(), 0, WIDTH);

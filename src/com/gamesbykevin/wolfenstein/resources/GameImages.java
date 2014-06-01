@@ -23,7 +23,8 @@ public final class GameImages extends ImageManager
         Dog, 
         Boss1, Boss2, Boss3, Boss4, Boss5, 
         BonusItems,
-        PlayerHud, Mugshots
+        PlayerHud, Mugshots,
+        LevelComplete
     }
     
     public GameImages() throws Exception
@@ -32,5 +33,8 @@ public final class GameImages extends ImageManager
         
         //the description that will be displayed for the progress bar
         super.setProgressDescription(DESCRIPTION);
+        
+        if (Keys.values().length < 1)
+            super.increase();
     }
 }

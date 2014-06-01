@@ -11,19 +11,21 @@ import com.gamesbykevin.wolfenstein.hero.Hero;
 import com.gamesbykevin.wolfenstein.display.Texture;
 import com.gamesbykevin.wolfenstein.display.Textures;
 import com.gamesbykevin.wolfenstein.level.Level;
+import com.gamesbykevin.wolfenstein.level.LevelStats;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu.LayerKey;
 import com.gamesbykevin.wolfenstein.menu.CustomMenu.OptionKey;
 import com.gamesbykevin.wolfenstein.resources.GameAudio;
-import com.gamesbykevin.wolfenstein.resources.GameFont;
 import com.gamesbykevin.wolfenstein.resources.GameImages;
+import com.gamesbykevin.wolfenstein.resources.GameFont;
 import com.gamesbykevin.wolfenstein.resources.Resources;
-
 import java.awt.Color;
+
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Rectangle;
+import java.awt.event.KeyEvent;
 import java.awt.image.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +40,9 @@ public final class Manager implements IManager
     //the area where gameplay will occur
     private Rectangle window;
     
+    //where we will render level create progress
+    private Rectangle progressWindow;
+    
     //this screen will render our 3d objects
     public Screen3D screen;
     
@@ -47,15 +52,14 @@ public final class Manager implements IManager
     //the object containing the level info
     private Level level;
     
-    //private Texture wall, floor, ceiling;
+    //this will display level stats
+    private LevelStats stats;
     
-    private Enemy soldier;
+    //object that will contain the enemies for the level
+    private Enemies enemies;
     
     //wall textures
     private Textures textures;
-    
-    //object that will contain all fonts for the game
-    private FontManager fonts;
     
     //unique keys for each font
     private enum FontKey 
@@ -63,12 +67,12 @@ public final class Manager implements IManager
         GameFont
     }
     
-    //the default font size
-    private static final float DEFAULT_FONT_SIZE = 24;
+    //the initial starting size of the maze
+    private int mazeDimensions = Level.MINIMUM_MAZE_DIMENSION;
     
     /**
      * Constructor for Manager, this is the point where we load any menu option configurations
-     * @param engine
+     * @param engine Engine for our game that contains all objects needed
      * @throws Exception 
      */
     public Manager(final Engine engine) throws Exception
@@ -76,87 +80,72 @@ public final class Manager implements IManager
         //calculate the game window where game play will occur
         this.window = new Rectangle(engine.getMain().getScreen());
 
-        //create container for game font
-        this.fonts = new FontManager(Resources.XML_CONFIG_GAME_FONT);
+        //area where progress is displayed to user
+        this.progressWindow = new Rectangle(window.x, window.y, window.width, window.height - 50);
 
-        //load all font resources
-        while (!fonts.isComplete())
-        {
-            fonts.update(engine.getMain().getContainerClass());
-        }
-
-        //verify everything is specified
-        fonts.verifyLocations(GameFont.Keys.values());
-
-        //now update the Font with the new Font size
-        fonts.set(GameFont.Keys.GameFont, fonts.get(GameFont.Keys.GameFont).deriveFont(DEFAULT_FONT_SIZE));
-
-        double startCol = 4;
-        double startRow = 4;
-
+        //the stats for the level will be rendered here
+        this.stats = new LevelStats(engine.getResources().getGameImage(GameImages.Keys.LevelComplete));
+        this.stats.setLocation(window.x, window.y);
+        this.stats.setDimensions(window);
+        
+        //create a new hero
         this.hero = new Hero(
             engine.getResources().getGameImage(GameImages.Keys.Guns), 
             engine.getResources().getGameImage(GameImages.Keys.PlayerHud), 
             engine.getResources().getGameImage(GameImages.Keys.Mugshots));
-        this.hero.setLevelLocation(startCol * 16, startRow * 16);
         
         //place the hero appropriately on the window along with the hud
         this.hero.setDimensions(192, 192);
         this.hero.setHeroLocation(window.x + (window.getWidth() / 2), window.y + window.getHeight());
         
+        //create new enemies list
+        this.enemies = new Enemies();
+        
         //create the textures for the walls
         this.textures = new Textures(engine.getResources().getGameImage(GameImages.Keys.WallTextures));
-
-        //create a new level
-        this.createLevel(8, 10, engine.getRandom(), engine.getResources().getGameImage(GameImages.Keys.Obstacles), engine.getResources().getGameImage(GameImages.Keys.BonusItems));
-
-        //create new texture and set pixel data array
-        //this.wall = new Texture();
-        //this.wall.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 0, 0);
-
-        //create new texture and set pixel data array
-        //this.floor = new Texture();
-        //this.floor.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 4, 3);
-
-        //create new texture and set pixel data array
-        //this.ceiling = new Texture();
-        //this.ceiling.update(engine.getResources().getGameImage(GameImage.Keys.WallTextureImage), 0, 7);
-
-        //this.sprite = new Texture(engine.getResources().getGameImage(GameImage.Keys.Soldier1), 0, 0);
-
-        this.soldier = new Soldier1();
-        this.soldier.setImage(engine.getResources().getGameImage(GameImages.Keys.Soldier1));
 
         //create new canvas
         this.screen = new Screen3D(window.width, window.height);
 
-
-
-        //BufferStrategy bs = 
-
         //get the menu object
-        //final Menu menu = engine.getMenu();
+        final Menu menu = engine.getMenu();
 
-        //the starting difficulty level
-        //this.difficultyIndex = menu.getOptionSelectionIndex(CustomMenu.LayerKey.Options, CustomMenu.OptionKey.Difficulty);
-
-        //pick random key
-        //GameImage.Keys key = keys.get(engine.getRandom().nextInt(keys.size()));
-
-        //create new background
-        //this.background = new Background(engine.getResources().getGameImage(key), window.getWidth(), window.y + window.height);
+        //the starting amount of lives
+        switch (menu.getOptionSelectionIndex(CustomMenu.LayerKey.Options, CustomMenu.OptionKey.Lives))
+        {
+            case 0:
+                hero.setLives(5);
+                break;
+                
+            case 1:
+                hero.setLives(10);
+                break;
+                
+            case 2:
+                hero.setLives(20);
+                break;
+                
+            default:
+                throw new Exception("Lives option not setup here.");
+        }
+        
+        //create new game
+        reset(engine);
     }
     
-    /**
-     * Create a new level.
-     * @param mazeDimensions The size of the maze
-     * @param roomDimensions The size of each room
-     * @throws Exception 
-     */
-    private void createLevel(final int mazeDimensions, final int roomDimensions, final Random random, final Image obstacleSpriteSheet, final Image bonusItemSpriteSheet) throws Exception
+    private void reset(final Engine engine) throws Exception
     {
+        //reset hero first before creating a new level
+        hero.reset((level != null) ? level.isComplete() : true);
+        
+        //remove all existing enemies
+        enemies.reset();
+        
+        //increase the dimensions
+        mazeDimensions++;
+        
         //create a new level
-        this.level = new Level(mazeDimensions, roomDimensions, random, obstacleSpriteSheet, bonusItemSpriteSheet);
+        this.level = new Level(mazeDimensions, Level.DEFAULT_ROOM_DIMENSION, engine.getRandom(), engine.getResources().getGameImage(GameImages.Keys.Obstacles), engine.getResources().getGameImage(GameImages.Keys.BonusItems));
     }
     
     /**
@@ -166,6 +155,11 @@ public final class Manager implements IManager
     public Rectangle getWindow()
     {
         return this.window;
+    }
+    
+    public Enemies getEnemies()
+    {
+        return this.enemies;
     }
     
     public Textures getTextures()
@@ -189,19 +183,35 @@ public final class Manager implements IManager
     @Override
     public void dispose()
     {
-        window = null;
-        
-        screen.dispose();
-        screen = null;
+        if (screen != null)
+        {
+            screen.dispose();
+            screen = null;
+        }
 
-        hero.dispose();
-        hero = null;
+        if (hero != null)
+        {
+            hero.dispose();
+            hero = null;
+        }
         
-        level.dispose();
-        level = null;
+        if (level != null)
+        {
+            level.dispose();
+            level = null;
+        }
         
-        textures.dispose();
-        textures = null;
+        if (textures != null)
+        {
+            textures.dispose();
+            textures = null;
+        }
+        
+        if (enemies != null)
+        {
+            enemies.dispose();
+            enemies = null;
+        }
     }
     
     /**
@@ -213,28 +223,89 @@ public final class Manager implements IManager
     @Override
     public void update(final Engine engine) throws Exception
     {
+        //continue to generate level
+        if (!level.isLevelCreated())
+        {
+            level.update(engine);
+            
+            if (level.isLevelCreated())
+            {
+                //play music
+                engine.getResources().playGameAudio(GameAudio.Keys.StageMusic, true);
+            }
+        }
+            
         if (level.isLevelCreated())
         {
-            //update our hero object
-            hero.update(engine);
-
-            //update level status
-            level.update(
-                engine.getMain().getTime(), 
-                hero.getInput().getPlayerX(), 
-                hero.getInput().getPlayerZ(), 
-                engine.getResources());
+            //has the level been solved
+            boolean complete = level.isComplete();
             
-            //update soldier animation
-            soldier.update(engine.getMain().getTime());
+            //only do the following if the level is not complete yet
+            if (!complete)
+            {
+                //do the following if the hero is alive
+                if (hero.hasHealth())
+                {
+                    //update level status
+                    level.update(
+                        engine.getMain().getTime(), 
+                        hero.getInput().getPlayerX(), 
+                        hero.getInput().getPlayerZ(), 
+                        engine.getResources());
 
-            //write our 3d screen objects etc.. to pixel array
-            screen.renderPixelData(engine, soldier);
-        }
-        else
-        {
-            //continue to generate level
-            level.update(engine.getRandom());
+                    //update enemies in play
+                    enemies.update(engine);
+
+                    //update our hero object
+                    hero.update(engine);
+                
+                    //write our 3d screen objects etc.. to pixel array
+                    screen.renderPixelData(engine);
+                }
+                else
+                {
+                    //if "r" was pressed reset player
+                    if (engine.getKeyboard().hasKeyPressed(KeyEvent.VK_R) && hero.hasLives())
+                    {
+                        //make sure we are no longer pressing this key
+                        engine.getKeyboard().removeKeyPressed(KeyEvent.VK_R);
+                        
+                        //reset hero stats
+                        hero.resetDeath(true);
+                        
+                        //start music again
+                        engine.getResources().playGameAudio(GameAudio.Keys.StageMusic, true);
+                    }
+                }
+            }
+            else
+            {
+                //check if "y" is pressed so we know to create a new level
+                if (engine.getKeyboard().hasKeyPressed(KeyEvent.VK_Y))
+                {
+                    //make sure we are no longer pressing this key
+                    engine.getKeyboard().removeKeyPressed(KeyEvent.VK_Y);
+                    
+                    //create new game
+                    reset(engine);
+                    
+                    //stop music
+                    engine.getResources().stopGameAudio(GameAudio.Keys.MainTheme);
+                }
+            }
+            
+            //if the level previously wasn't finished, but is now calculate stats
+            if (!complete && level.isComplete())
+            {
+                //calculate stats
+                stats.calculateStats(enemies, level);
+                
+                //stop music
+                engine.getResources().stopGameAudio(GameAudio.Keys.StageMusic);
+                
+                //play music
+                engine.getResources().playGameAudio(GameAudio.Keys.MainTheme, true);
+            }
         }
     }
     
@@ -247,19 +318,33 @@ public final class Manager implements IManager
     {
         if (level.isLevelCreated())
         {
-            //set the font
-            graphics.setFont(fonts.get(GameFont.Keys.GameFont));
-
-            //draw the buffered image
-            graphics.drawImage(screen.getImage(), 0, 0, window.width, window.height, null);
-
-            //draw hero
-            hero.render(graphics);
+            if (!level.isComplete())
+            {
+                //draw the buffered image
+                graphics.drawImage(screen.getImage(), 0, 0, window.width, window.height, null);
+                
+                //draw hero
+                hero.render(graphics);
+                
+                //draw hurt overlay, if not hurt nothing will be drawn
+                hero.renderHurt(graphics, window.width, window.height);
+            }
+            else
+            {
+                //draw stats in white
+                graphics.setColor(Color.WHITE);
+                
+                //render level complete stats
+                stats.render(graphics);
+            }
+            
+            //draw hero hud
+            hero.renderHud(graphics);
         }
         else
         {
             //draw progress
-            level.renderProgress(graphics, window);
+            level.renderProgress(graphics, progressWindow);
         }
     }
 }

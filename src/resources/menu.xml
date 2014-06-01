@@ -8,7 +8,7 @@
         <force>false</force>
         <pause>false</pause>
         <duration>3000</duration>
-        <image>resources/images/menu/title.gif</image>
+        <image>resources/images/menu/title.jpg</image>
     </layer>
     <layer id="Credits" next="MainTitle">
         <transition>SCROLL_VERTICAL_NORTH</transition>
@@ -43,11 +43,6 @@
         <title>Options</title>
         <backgroundMusicLocation></backgroundMusicLocation>
         <optionSoundLocation>resources/audio/menu/sound/optionSelection.wav</optionSoundLocation>
-        <options name="Mode: " id="Mode">
-            <option>Single Player</option>
-            <option>Cooperative</option>
-            <option>Race</option>
-        </options>
         <options name="Difficulty: " id="Difficulty">
             <option>Easy</option>
             <option>Medium</option>
@@ -55,11 +50,10 @@
             <option>Harder</option>
             <option>Hardest</option>
         </options>
-        <options name="Lives: " id="Lives">
-            <option>3</option>
+        <options name="Starting Lives: " id="Lives">
             <option>5</option>
-            <option>7</option>
-            <option>30</option>
+            <option>10</option>
+            <option>20</option>
         </options>
         <options name="Full Screen: " id="FullScreen">
             <option>Off</option>
@@ -72,21 +66,42 @@
         <force>false</force>
         <pause>true</pause>
         <duration></duration>
-        <image>resources/images/menu/controls.gif</image>
+        <image>resources/images/menu/controls.jpg</image>
     </layer>
     <layer id="Instructions" next="Instructions2">
         <transition></transition>
         <force>false</force>
         <pause>true</pause>
         <duration></duration>
-        <image>resources/images/menu/instructions.gif</image>
+        <image>resources/images/menu/instructions.jpg</image>
     </layer>
-    <layer id="Instructions2" next="MainTitle">
+    <layer id="Instructions2" next="Instructions3">
         <transition></transition>
         <force>false</force>
         <pause>true</pause>
         <duration></duration>
-        <image>resources/images/menu/instructions2.gif</image>
+        <image>resources/images/menu/instructions2.jpg</image>
+    </layer>
+    <layer id="Instructions3" next="Instructions4">
+        <transition></transition>
+        <force>false</force>
+        <pause>true</pause>
+        <duration></duration>
+        <image>resources/images/menu/instructions3.jpg</image>
+    </layer>
+    <layer id="Instructions4" next="Instructions5">
+        <transition></transition>
+        <force>false</force>
+        <pause>true</pause>
+        <duration></duration>
+        <image>resources/images/menu/instructions4.jpg</image>
+    </layer>
+    <layer id="Instructions5" next="MainTitle">
+        <transition></transition>
+        <force>false</force>
+        <pause>true</pause>
+        <duration></duration>
+        <image>resources/images/menu/instructions5.jpg</image>
     </layer>
     <layer id="GameStart">
     </layer>
@@ -102,8 +117,8 @@
         <optionSoundLocation>resources/audio/menu/sound/optionSelection.wav</optionSoundLocation>
         <options name="Resume" id="Resume" next="GameStart"></options>
         <options name="Sound: " id="Sound">
-            <option>Off</option>
             <option>On</option>
+            <option>Off</option>
         </options>
         <options name="Full Screen: " id="FullScreen">
             <option>Off</option>
@@ -133,9 +148,10 @@
         <image></image>
         <optionContainerRatio>0.80</optionContainerRatio>
         <title>Leave?</title>
-        <options name="Yes" next="MainTitle" id="MainTitle"></options>
+        <options name="Yes" next="ExitGameConfirmed" id="MainTitle"></options>
         <options name="No" next="OptionsInGame" id="OptionsInGame"></options>
     </layer>
+    <layer id="ExitGameConfirmed"></layer>
     <layer id="NoFocus">
         <transition></transition>
         <force>false</force>

@@ -13,6 +13,9 @@ public final class Weapon implements Disposable
     //the current, default start, and max amount of bullets
     private int current, max, start;
     
+    //the amount of damage 1 bullet will do
+    private int damage;
+    
     protected Weapon(final Type type)
     {
         this.type = type;
@@ -21,6 +24,7 @@ public final class Weapon implements Disposable
         this.current = type.getStart();
         this.start   = type.getStart();
         this.max     = type.getMax();
+        this.damage  = type.getDamage();
     }
     
     @Override
@@ -41,9 +45,6 @@ public final class Weapon implements Disposable
             setCurrent(getMax());
         if (getCurrent() < 0)
             setCurrent(0);
-        
-        if (Shared.DEBUG)
-            System.out.println("Weapon Type: " + type + ". Ammo set to: " + getCurrent());
     }
     
     /**
@@ -91,6 +92,14 @@ public final class Weapon implements Disposable
         return this.start;
     }
     
+    /**
+     * Get the damage for this gun
+     * @return The damage from 1 bullet
+     */
+    protected int getDamage()
+    {
+        return this.damage;
+    }
     
     /**
      * Set the number of bullets.
@@ -112,9 +121,6 @@ public final class Weapon implements Disposable
     protected void shoot()
     {
         setCurrent(getCurrent() - 1);
-        
-        if (Shared.DEBUG)
-            System.out.println("Shoot - Weapon Type: " + type + ". Ammo currently: " + getCurrent());
     }
     
 }

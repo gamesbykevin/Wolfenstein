@@ -2,6 +2,8 @@ package com.gamesbykevin.wolfenstein.display;
 
 import com.gamesbykevin.framework.base.Cell;
 
+import com.gamesbykevin.wolfenstein.enemies.Enemies;
+import com.gamesbykevin.wolfenstein.enemies.Enemy;
 import com.gamesbykevin.wolfenstein.hero.Input;
 import com.gamesbykevin.wolfenstein.level.*;
 import com.gamesbykevin.wolfenstein.level.objects.*;
@@ -36,7 +38,7 @@ public class Render3D extends Render
     private final double doorSecretDepth = 0.01;    
     
     //the number of blocks the object needs to be within range in order to be rendered
-    private final int renderRange = 40;
+    public static final int RENDER_RANGE = 30;
     
     //temporary texture object
     private Texture tmpTexture;
@@ -192,10 +194,10 @@ public class Render3D extends Render
         }
         
         //we do we start and end
-        final int startX = playerX - renderRange;
-        final int endX = playerX + renderRange;
-        final int startZ = playerZ - renderRange;
-        final int endZ = playerZ + renderRange;
+        final int startX = playerX - RENDER_RANGE;
+        final int endX = playerX + RENDER_RANGE;
+        final int startZ = playerZ - RENDER_RANGE;
+        final int endZ = playerZ + RENDER_RANGE;
         
         final double extra = 1;
         
@@ -374,7 +376,6 @@ public class Render3D extends Render
      */
     private float getProgress(final Block block)
     {
-        
         float progress = 0f;
         
         //if not a door there has been no progress
@@ -395,22 +396,22 @@ public class Render3D extends Render
     
     /**
      * Is the parameter provided within range to be considered for rendering.
-     * @param cell The x location of the object we want to check
+     * @param x The x location of the object we want to check
      * @return true if the x location provided is close enough to the player to be rendered, false otherwise
      */
-    private boolean hasRangeX(final int cell)
+    private boolean hasRangeX(final double x)
     {
-        return (cell - (right/16) <= renderRange && cell - (right/16) >= -renderRange);
+        return (x - (right/16) <= RENDER_RANGE && x - (right/16) >= -RENDER_RANGE);
     }
     
     /**
      * Is the parameter provided within range to be considered for rendering.
-     * @param cell The z location of the object we want to check
+     * @param z The z location of the object we want to check
      * @return true if the z location provided is close enough to the player to be rendered, false otherwise
      */
-    private boolean hasRangeZ(final int cell)
+    private boolean hasRangeZ(final double z)
     {
-        return (cell - (forward/16) <= renderRange && cell - (forward/16) >= -renderRange);
+        return (z - (forward/16) <= RENDER_RANGE && z - (forward/16) >= -RENDER_RANGE);
     }
     
     /**
@@ -426,7 +427,6 @@ public class Render3D extends Render
             for (int x = 0; x < bonus.getLocations().size(); x++)
             {
                 Cell location = bonus.getLocations().get(x);
-                
                 renderSprite(location.getCol(), 0, location.getRow(), 0, bonus.getPixels(), (int)bonus.getWidth(), (int)bonus.getHeight());
             }
         }
@@ -438,9 +438,20 @@ public class Render3D extends Render
             for (int x = 0; x < obstacle.getLocations().size(); x++)
             {
                 Cell location = obstacle.getLocations().get(x);
-                
                 renderSprite(location.getCol(), 0, location.getRow(), 0, obstacle.getPixels(), (int)obstacle.getWidth(), (int)obstacle.getHeight());
             }
+        }
+    }
+    
+    public void renderEnemies(final Enemies enemies)
+    {
+        for (int i = 0; i < enemies.getEnemies().size(); i++)
+        {
+            //get the current enemy
+            Enemy enemy = enemies.getEnemies().get(i);
+            
+            //render enemy
+            renderSprite(enemy.getX(), 0, enemy.getZ(), 0, enemy.getPixels(), (int)enemy.getWidth(), (int)enemy.getHeight());
         }
     }
     
@@ -457,13 +468,9 @@ public class Render3D extends Render
     public void renderSprite(final double x, final double y, final double z, final double heightOffset, final int[] tmpPixels, final int imageWidth, final int imageHeight)
     {
         //only sprites within a certain range will be rendered
-        if (!hasRangeZ((int)z))
+        if (!hasRangeZ(z) || !hasRangeX(x))
             return;
         
-        //only sprites within a certain range will be rendered
-        if (!hasRangeX((int)x))
-            return;
-                
         //adjustment variables
         final double upCorrect = -0.125;
         final double rightCorrect = 0.0625;
@@ -537,7 +544,7 @@ public class Render3D extends Render
                     int color = tmpPixels[(xTexture & (imageWidth-1)) + (yTexture & (imageHeight-1)) * imageWidth];
                     
                     //don't render transparent pixels
-                    if (color != 0xffff00ff && color != 0 && color != -16777216)
+                    if (color != 0xffff00ff && color != 0)
                     {
                         getPixels()[index] = color;
                         zBuffer[index] = rotZ;

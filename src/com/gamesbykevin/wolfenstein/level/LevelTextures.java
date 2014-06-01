@@ -12,7 +12,7 @@ import java.util.Random;
 public final class LevelTextures implements Disposable
 {
     //contain a list of wall texture keys for each level
-    private HashMap<LevelKey, List> levelKeys;
+    private HashMap<LevelKey, List<Textures.Key>> levelKeys;
     
     public enum LevelKey
     {
@@ -126,7 +126,7 @@ public final class LevelTextures implements Disposable
     public Textures.Key getRandomTexture(final Random random)
     {
         //get the current list
-        List<Textures.Key> textures = (List<Textures.Key>)levelKeys.get(levelKey);
+        List<Textures.Key> textures = levelKeys.get(levelKey);
         
         //make a random selection
         return textures.get(random.nextInt(textures.size()));

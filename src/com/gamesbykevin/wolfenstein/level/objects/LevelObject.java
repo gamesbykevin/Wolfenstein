@@ -5,6 +5,7 @@ import com.gamesbykevin.framework.base.Cell;
 import com.gamesbykevin.framework.base.Sprite;
 import com.gamesbykevin.framework.resources.Disposable;
 import com.gamesbykevin.wolfenstein.display.Texture;
+import com.gamesbykevin.wolfenstein.shared.Shared;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,11 +45,17 @@ public abstract class LevelObject extends Sprite implements Disposable
     {
         super.dispose();
         
-        texture.dispose();
-        texture = null;
+        if (texture != null)
+        {
+            texture.dispose();
+            texture = null;
+        }
         
-        locations.clear();
-        locations = null;
+        if (locations != null)
+        {
+            locations.clear();
+            locations = null;
+        }
     }
  
     public List<Cell> getLocations()
@@ -137,12 +144,17 @@ public abstract class LevelObject extends Sprite implements Disposable
     }
     
     /**
-     * Set the current animation
+     * Set the current animation and reset it to the beginning as well.<br>
+     * If the animation doesn't exist it will not be set and nothing will happen
      * @param key The key that identifies the animation
      */
     public void setAnimation(final Object key)
     {
-        super.getSpriteSheet().setCurrent(key);
+        if (hasAnimation(key))
+        {
+            super.getSpriteSheet().setCurrent(key);
+            super.getSpriteSheet().reset();
+        }
     }
     
     /**
@@ -172,7 +184,7 @@ public abstract class LevelObject extends Sprite implements Disposable
     {
         //update animation
         super.getSpriteSheet().update(time);
-        
+
         //update current image
         texture.update(getImage(), getSpriteSheet().getLocation());
     }

@@ -18,6 +18,12 @@ public final class Weapons implements Disposable
     private static final int DEFAULT_MACHINEGUN = 200;
     private static final int MAX_MACHINEGUN = 500;
     
+    //default damage for weapons
+    private static final int DEFAULT_DAMAGE_KNIFE = 25;
+    private static final int DEFAULT_DAMAGE_PISTOL = 40;
+    private static final int DEFAULT_DAMAGE_ASSAULT_RIFLE = 33;
+    private static final int DEFAULT_DAMAGE_MACHINEGUN = 50;
+    
     public static final long DELAY_KNIFE = Timers.toNanoSeconds(100L);
     public static final long DELAY_PISTOL = Timers.toNanoSeconds(125L);
     public static final long DELAY_ASSAULT_RIFLE = Timers.toNanoSeconds(15L);
@@ -25,21 +31,32 @@ public final class Weapons implements Disposable
     
     public enum Type
     {
-        Knife(DEFAULT_KNIFE, MAX_KNIFE),
-        Pistol(DEFAULT_PISTOL, MAX_PISTOL),
-        AssaultRifle(DEFAULT_ASSAULT_RIFLE, MAX_ASSAULT_RIFLE),
-        MachineGun(DEFAULT_MACHINEGUN, MAX_MACHINEGUN);
+        Knife(DEFAULT_KNIFE, MAX_KNIFE, DEFAULT_DAMAGE_KNIFE),
+        Pistol(DEFAULT_PISTOL, MAX_PISTOL, DEFAULT_DAMAGE_PISTOL),
+        AssaultRifle(DEFAULT_ASSAULT_RIFLE, MAX_ASSAULT_RIFLE, DEFAULT_DAMAGE_ASSAULT_RIFLE),
+        MachineGun(DEFAULT_MACHINEGUN, MAX_MACHINEGUN, DEFAULT_DAMAGE_MACHINEGUN);
         
-        final int start, max;
+        final int start, max, damage;
         
         /**
          * @param start Default start bullet count
          * @param max Maximum bullet count allowed
+         * @param damage The amount of damage from 1 bullet
          */
-        private Type(final int start, final int max)
+        private Type(final int start, final int max, final int damage)
         {
             this.start = start;
             this.max = max;
+            this.damage = damage;
+        }
+        
+        /**
+         * Get the damage for this weapon
+         * @return The damage from 1 bullet
+         */
+        protected int getDamage()
+        {
+            return this.damage;
         }
         
         /**
@@ -111,6 +128,15 @@ public final class Weapons implements Disposable
     public int getAmmoCount()
     {
         return getWeapon().getCurrent();
+    }
+    
+    /**
+     * Get the damage for the currently equipped weapon
+     * @return The damage is for 1 bullet
+     */
+    public int getDamage()
+    {
+        return getWeapon().getDamage();
     }
     
     /**

@@ -1,14 +1,18 @@
 package com.gamesbykevin.wolfenstein.hero;
 
-import com.gamesbykevin.wolfenstein.hero.hud.*;
 import com.gamesbykevin.framework.resources.Disposable;
+import com.gamesbykevin.framework.util.Timer;
+import com.gamesbykevin.framework.util.Timers;
 
 import com.gamesbykevin.wolfenstein.engine.Engine;
+import com.gamesbykevin.wolfenstein.hero.hud.*;
 import com.gamesbykevin.wolfenstein.level.objects.BonusItem;
 import com.gamesbykevin.wolfenstein.level.objects.LevelObject;
 import com.gamesbykevin.wolfenstein.hero.weapons.Weapons;
-import com.gamesbykevin.wolfenstein.shared.Shared;
+import com.gamesbykevin.wolfenstein.resources.GameAudio;
 
+
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -36,7 +40,7 @@ public final class Hero extends LevelObject implements Disposable
     private int score = 0;
     
     //the current level we are on
-    private int level = 1;
+    private int level = 0;
     
     //the inventory of weapons
     private Weapons weapons;
@@ -56,8 +60,17 @@ public final class Hero extends LevelObject implements Disposable
     //graphics object for buffered image
     private Graphics g;
     
+    //transparent red color
+    private static final Color RED_COLOR = new Color(1.0f, 0.0f, 0.0f, 0.2f);
+    
+    //timer for how long to display red hurt image
+    private Timer timer;
+    
     //used to control number of times we render our H.U.D.
     private boolean change = true;
+    
+    //has the hero died
+    private boolean flagDeath = false;
     
     //bonus item info etc...
     protected static final int SMALL_HEALTH = 10;
@@ -66,6 +79,9 @@ public final class Hero extends LevelObject implements Disposable
     protected static final int TREASURE_2 = 250;
     protected static final int TREASURE_3 = 500;
     protected static final int TREASURE_4 = 1000;
+    
+    private static final int HERO_START_X = 2;
+    private static final int HERO_START_Z = 2;
     
     public Hero(final Image spriteSheet, final Image heroHud, final Image mugshotImage) throws Exception
     {
@@ -101,6 +117,12 @@ public final class Hero extends LevelObject implements Disposable
         
         //get graphics object
         this.g = this.hudImage.createGraphics();
+        
+        //create a new timer for our red hurt image
+        this.timer = new Timer(Timers.toNanoSeconds(200L));
+        
+        //expire the time until we need to render the red hurt image
+        this.timer.update(this.timer.getReset() + 1);
     }
     
     @Override
@@ -146,10 +168,52 @@ public final class Hero extends LevelObject implements Disposable
         }
     }
     
-    public void setLevelLocation(final double x, final double z)
+    /**
+     * Reset player whether new level or they died
+     * @param levelComplete If true will increase current level number
+     */
+    public void reset(final boolean levelComplete)
     {
-        getInput().setX(x);
-        getInput().setZ(z);
+        //if new level increase the count
+        if (levelComplete)
+        {
+            //keep track of the level we are on
+            increaseLevel();
+        }
+        
+        //remove all keys from hero
+        removeKeys();
+        
+        //reset hero defaults
+        resetDeath(false);
+    }
+    
+    public void resetDeath(final boolean loseLife)
+    {
+        //are we deducting a life
+        if (loseLife)
+            setLives(getLives() - 1);
+        
+        //set hero back at start
+        resetLocation();
+        
+        //reset the angle the hero is facing
+        resetAngle();
+        
+        //flag change to update hud
+        flagChange();
+        
+        //set health to default
+        setHealth(HEALTH_MAX);
+    }
+    
+    /**
+     * Reset the heroes location to the start position
+     */
+    private void resetLocation()
+    {
+        getInput().setX(HERO_START_X * 16);
+        getInput().setZ(HERO_START_Z * 16);
     }
     
     /**
@@ -186,10 +250,24 @@ public final class Hero extends LevelObject implements Disposable
     
     public void update(final Engine engine) throws Exception
     {
-        getInput().update(engine.getKeyboard(), engine.getManager().getLevel(), this, engine.getResources());
+        //update timer if it has not finished
+        if (!timer.hasTimePassed())
+            timer.update(engine.getMain().getTime());
         
-        //update parent object as well
-        super.update(engine.getMain().getTime());
+        //if the hero just died
+        if (flagDeath)
+        {
+            flagDeath = false;
+            setLives(getLives() - 1);
+            engine.getResources().stopAllSound();
+            engine.getResources().playGameAudio(GameAudio.Keys.HeroDeath);
+        }
+        
+        if (hasHealth())
+            getInput().update(engine);
+        
+        //update sprite animation
+        super.getSpriteSheet().update(engine.getMain().getTime());
         
         //if the animation has finished
         if (super.getSpriteSheet().hasFinished())
@@ -218,9 +296,9 @@ public final class Hero extends LevelObject implements Disposable
         super.setY(this.hudLocation.y - super.getHeight() - 1);
     }
     
-    public void setLevel(final int level)
+    private void increaseLevel()
     {
-        this.level = level;
+        this.level++;
     }
     
     public int getLevel()
@@ -241,12 +319,15 @@ public final class Hero extends LevelObject implements Disposable
      * Change the heroes health
      * @param change The adjustment to the health we want to make.
      */
-    protected void modifyHealth(final int change)
+    public void modifyHealth(final int change)
     {
         //keep the health within range of 0 - 100
         if (getHealth() + change < HEALTH_MIN)
         {
             setHealth(HEALTH_MIN);
+            
+            //flag death
+            flagDeath = true;
         }
         else if (getHealth() + change > HEALTH_MAX)
         {
@@ -257,6 +338,16 @@ public final class Hero extends LevelObject implements Disposable
             //make the adjustment
             setHealth(getHealth() + change);
         }
+        
+        //if we deduct health then the player has been hurt
+        if (change < 0)
+        {
+            //reset the time to display
+            timer.reset();
+        }
+        
+        //flag change
+        flagChange();
     }
     
     private void setHealth(final int health)
@@ -265,9 +356,6 @@ public final class Hero extends LevelObject implements Disposable
         
         //update the current animation
         this.mugshot.setCurrent(getHealth());
-        
-        if(Shared.DEBUG)
-            System.out.println("Health: " + this.health);
     }
     
     /**
@@ -279,15 +367,17 @@ public final class Hero extends LevelObject implements Disposable
         return this.health;
     }
     
+    public boolean hasHealth()
+    {
+        return (getHealth() > 0);
+    }
+    
     /**
      * Add 1 key to inventory
      */
     protected void addKey()
     {
         this.keys++;
-        
-        if(Shared.DEBUG)
-            System.out.println("Keys: " + this.keys);
     }
     
     /**
@@ -306,15 +396,17 @@ public final class Hero extends LevelObject implements Disposable
     public void setLives(final int lives)
     {
         this.lives = lives;
-        
-        if(Shared.DEBUG)
-            System.out.println("Lives: " + this.lives);
+    }
+    
+    public boolean hasLives()
+    {
+        return (getLives() > 0);
     }
     
     /**
      * Remove all keys
      */
-    public void removeKeys()
+    private void removeKeys()
     {
         this.keys = 0;
     }
@@ -322,14 +414,16 @@ public final class Hero extends LevelObject implements Disposable
     protected void addScore(final int score)
     {
         this.score += score;
-        
-        if(Shared.DEBUG)
-            System.out.println("Score: " + this.score);
     }
     
     public int getScore()
     {
         return this.score;
+    }
+    
+    private void resetAngle()
+    {
+        getInput().setRotation(Math.toRadians(45));
     }
     
     public Weapons getWeapons()
@@ -364,22 +458,52 @@ public final class Hero extends LevelObject implements Disposable
     
     public void render(final Graphics graphics)
     {
+        //draw hero weapon animation
+        super.draw(graphics);
+    }
+    
+    public void renderHurt(final Graphics graphics, final int w, final int h)
+    {
+        //if there is remaining time the hero has been hurt, or if the player is dead
+        if (!timer.hasTimePassed() || !hasHealth())
+        {
+            graphics.setColor(RED_COLOR);
+            graphics.fillRect(0, 0, w, h);
+            
+            //draw text if do not have health
+            if (!hasHealth())
+            {
+                graphics.setColor(Color.WHITE);
+                graphics.setFont(graphics.getFont().deriveFont(24f));
+                
+                if (hasLives())
+                {
+                    graphics.drawString("Press \"R\" to restart existing level.", (w/2) - 150, (h/2));
+                }
+                else
+                {
+                    graphics.drawString("Game Over! Press \"Esc\" to access menu.", (w/2) - 130, (h/2));
+                }
+            }
+        }
+    }
+    
+    public void renderHud(final Graphics graphics)
+    {
         try
         {
-            //draw hero weapon animation
-            super.draw(graphics);
-            
+            //if there was a change draw a new hud image
             if (hasChange())
             {
                 setChange(false);
-                
+
                 //draw hud elements etc...
                 getHud().render(g, this);
             }
-            
+
             //draw mug shot
             getMugshot().draw(g);
-            
+
             //draw buffered image
             graphics.drawImage(hudImage, hudLocation.x, hudLocation.y, hudLocation.width, hudLocation.height, null);
         }

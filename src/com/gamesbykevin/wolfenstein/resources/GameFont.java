@@ -25,5 +25,8 @@ public final class GameFont extends FontManager
         
         //the description that will be displayed for the progress bar
         super.setProgressDescription(DESCRIPTION);
+        
+        if (Keys.values().length < 1)
+            super.increase();
     }
 }

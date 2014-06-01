@@ -39,7 +39,8 @@ public final class CustomMenu extends Menu implements IElement
     public enum LayerKey 
     {
         Initial, Credits, MainTitle, Options, OptionsInGame, NewGameConfirm, 
-        ExitGameConfirm, NoFocus, GameStart, CreateNewGame, Controls, Instructions 
+        ExitGameConfirm, NoFocus, GameStart, CreateNewGame, Controls, Instructions,
+        ExitGameConfirmed
     }
     
     /**
@@ -51,7 +52,7 @@ public final class CustomMenu extends Menu implements IElement
     }
     
     //is sound enabled, default true
-    private Toggle sound = Toggle.On;
+    private Toggle sound = Toggle.Off;
     
     //is full screen enabled, default false
     private Toggle fullWindow = Toggle.Off;
@@ -225,6 +226,16 @@ public final class CustomMenu extends Menu implements IElement
             }
             
             super.update(engine.getMouse(), engine.getKeyboard(), engine.getMain().getTime());
+            
+            //if confirming exit from the game, stop sound
+            if (super.hasCurrent(LayerKey.ExitGameConfirmed))
+            {
+                //stop all sound
+                engine.getResources().stopAllSound();
+                
+                //go to specified layer
+                super.setLayer(LayerKey.MainTitle);
+            }
             
             //if we now have finished the menu flag the engine to reset
             if (super.hasFinished())

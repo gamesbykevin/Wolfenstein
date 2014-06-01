@@ -182,6 +182,11 @@ public final class Resources implements IResources
         return fonts.get(key);
     }
     
+    public void setFont(final Object key, final Font font)
+    {
+        fonts.set(key, font);
+    }
+    
     @Override
     public void dispose()
     {

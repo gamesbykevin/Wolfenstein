@@ -57,16 +57,17 @@ public final class Mugshot extends Sprite implements Disposable
         //set default
         super.getSpriteSheet().setCurrent(MugKey.Health100);
         
+        //set the dimensions based on the current sprite sheet animation frame
+        super.setDimensions();
+        
         //don't pause
         super.getSpriteSheet().setPause(false);
     }
     
     public void update(final long time) throws Exception
     {
+        //update animation
         super.getSpriteSheet().update(time);
-        
-        //set the dimensions based on the current sprite sheet animation frame
-        super.setDimensions();
     }
     
     /**

@@ -5,10 +5,12 @@ import com.gamesbykevin.framework.base.Cell;
 import com.gamesbykevin.framework.labyrinth.Labyrinth;
 import com.gamesbykevin.framework.labyrinth.Location;
 import com.gamesbykevin.framework.labyrinth.Location.Wall;
-import com.gamesbykevin.wolfenstein.display.Textures;
 
+import com.gamesbykevin.wolfenstein.display.Textures;
+import com.gamesbykevin.wolfenstein.enemies.Enemies;
 import com.gamesbykevin.wolfenstein.level.objects.*;
 import com.gamesbykevin.wolfenstein.level.objects.BonusItem.Type.*;
+import com.gamesbykevin.wolfenstein.resources.Resources;
 import static com.gamesbykevin.wolfenstein.level.objects.BonusItem.Type.Key1;
 import static com.gamesbykevin.wolfenstein.level.objects.BonusItem.Type.Key2;
 import static com.gamesbykevin.wolfenstein.level.Level.State;
@@ -32,6 +34,9 @@ public class RoomHelper
     //this is used to determine
     private static final int RANDOM_DOOR_PROBABILITY = 3;
     
+    //how many enemies can be placed in a room
+    private static final int MAX_ENEMIES_PER_ROOM = 2;
+    
     /**
      * Different patterns for placing obstacles
      */
@@ -49,12 +54,22 @@ public class RoomHelper
     
     private static int getStartRow(final Level level, final Cell location)
     {
-        return (int)(location.getRow() * level.getRoomDimensions());
+        return getStartRow(level, (int)location.getRow());
+    }
+    
+    private static int getStartRow(final Level level, final int row)
+    {
+        return (int)(row * level.getRoomDimensions());
     }
     
     private static int getStartCol(final Level level, final Cell location)
     {
-        return (int)(location.getCol() * level.getRoomDimensions());
+        return getStartCol(level, (int)location.getCol());
+    }
+    
+    private static int getStartCol(final Level level, final int col)
+    {
+        return (int)(col * level.getRoomDimensions());
     }
     
     /**
@@ -390,6 +405,75 @@ public class RoomHelper
             case ExtraLife:
                 types.remove(type);
                 break;
+        }
+    }
+    
+    protected static void placeEnemies(final Cell location, final Random random, final Enemies enemies, final Level level, final Resources resources, final boolean canAddBoss)
+    {
+        //how many enemies can be added to this room at random
+        final int enemyLimit;
+        
+        if (canAddBoss)
+        {
+            //if boss only 1 can be added
+            enemyLimit = random.nextInt(MAX_ENEMIES_PER_ROOM);
+        }
+        else
+        {
+            //regular enemies can have 0, 1, or 2 enemies per room
+            enemyLimit = random.nextInt(MAX_ENEMIES_PER_ROOM + 1);
+        }
+        
+        //if no enemies are to be added exit method
+        if (enemyLimit < 1)
+            return;
+        
+        try
+        {
+            //find start position
+            final int startCol = getStartCol(level, location);
+            final int startRow = getStartRow(level, location);
+
+            //get list of all locations to place enemies in room
+            List<Cell> options = getOptions(startCol, startRow, level.getRoomDimensions());
+
+            //remove places that contain obstacles or bonus items
+            for (int i = 0; i < options.size(); i++)
+            {
+                Cell cell = options.get(i);
+
+                //if there is already a bonus/obstacle here remove location as valid
+                if (level.getLevelObjects().hasItem(cell.getCol(), cell.getRow()))
+                {
+                    options.remove(i);
+                    i--;
+                }
+            }
+
+            int count = 0;
+
+            //keep placing enemies until we reaced our limit or there are no places to put the enemy
+            while (count < enemyLimit && options.size() > 0)
+            {
+                //choose a random location
+                final int index = random.nextInt(options.size());
+
+                //get random location
+                Cell cell = options.get(index);
+
+                //add random enemy for now
+                enemies.add(Enemies.getRandomEnemy(random, canAddBoss), cell.getCol(), cell.getRow(), resources, random);
+
+                //remove as possible option
+                options.remove(index);
+                
+                //increase count
+                count++;
+            }
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
         }
     }
     

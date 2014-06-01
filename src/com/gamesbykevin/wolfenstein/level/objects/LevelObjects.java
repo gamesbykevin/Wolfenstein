@@ -189,21 +189,25 @@ public final class LevelObjects implements Disposable
     }
     
     /**
-     * Is there already a bonus item at this location
+     * Is there already a bonus item or obstacle at this location
      * @param x x-location
      * @param z z-location
      * @return true if an item exists false otherwise
      */
-    private boolean hasItem(final double x, final double z)
+    public boolean hasItem(final double x, final double z)
     {
-        for (BonusItem bonusItem : getBonusItems())
+        for (int i = 0; i < getBonusItems().size(); i++)
         {
+            BonusItem bonusItem = getBonusItems().get(i);
+            
             if (bonusItem.hasLocation(x, z))
                 return true;
         }
         
-        for (Obstacle obstacle : getObstacles())
+        for (int i = 0; i < getObstacles().size(); i++)
         {
+            Obstacle obstacle = getObstacles().get(i);
+            
             if (obstacle.hasLocation(x, z))
                 return true;
         }

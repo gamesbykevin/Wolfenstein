@@ -22,6 +22,9 @@ public class Block implements Disposable
     //this is block the goal
     private boolean goal = false;
     
+    //keep track if player had visited this block
+    private boolean visited = false;
+    
     //store the side where this block is placed
     private Wall wall;
     
@@ -33,9 +36,20 @@ public class Block implements Disposable
     public void dispose()
     {
         if (door != null)
+        {
             door.dispose();
-        
-        door = null;
+            door = null;
+        }
+    }
+    
+    public void markVisited()
+    {
+        this.visited = true;
+    }
+    
+    public boolean hasVisited()
+    {
+        return this.visited;
     }
     
     protected void setWall(final Wall wall)

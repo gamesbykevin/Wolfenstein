@@ -16,4 +16,5 @@
     <image id="BonusItems">resources/images/game/bonusItems.png</image>
     <image id="PlayerHud">resources/images/game/hud.gif</image>
     <image id="Mugshots">resources/images/game/mugshot.gif</image>
+    <image id="LevelComplete">resources/images/game/levelComplete.gif</image>
 </images>

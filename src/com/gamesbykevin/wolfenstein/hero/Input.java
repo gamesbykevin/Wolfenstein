@@ -4,6 +4,8 @@ import com.gamesbykevin.framework.base.Sprite;
 import com.gamesbykevin.framework.input.Keyboard;
 
 import com.gamesbykevin.wolfenstein.display.Render3D;
+import com.gamesbykevin.wolfenstein.enemies.Enemies;
+import com.gamesbykevin.wolfenstein.engine.Engine;
 import com.gamesbykevin.wolfenstein.hero.weapons.Weapons;
 import com.gamesbykevin.wolfenstein.level.Block;
 import com.gamesbykevin.wolfenstein.level.Level;
@@ -40,12 +42,12 @@ public final class Input extends Sprite
     private final double speedWalk   = 1.75;
     
     //how fast can the player turn
-    private final double rotationSpeed = 0.055;
+    private final double rotationSpeed = 0.045;
     
     //are we playing sound for gun fire
     private boolean play = false;
     
-    //Here is all of our input options
+    //here is all of our input options
     private static final int KEY_WEAPON_SELECT_1 = KeyEvent.VK_1;
     private static final int KEY_WEAPON_SELECT_2 = KeyEvent.VK_2;
     private static final int KEY_WEAPON_SELECT_3 = KeyEvent.VK_3;
@@ -74,8 +76,14 @@ public final class Input extends Sprite
      * @param resources Resources object to play sound
      * @throws Exception 
      */
-    public void update(final Keyboard keyboard, final Level level, final Hero hero, final Resources resources) throws Exception
+    public void update(final Engine engine) throws Exception
     {
+        Keyboard keyboard = engine.getKeyboard();
+        Hero hero = engine.getManager().getHero();
+        Resources resources = engine.getResources();
+        Level level = engine.getManager().getLevel();
+        Enemies enemies = engine.getManager().getEnemies();
+        
         int xMove = 0;
         int zMove = 0;
         double jumpHeight = 1;
@@ -100,10 +108,10 @@ public final class Input extends Sprite
         boolean openDoorRelease = keyboard.hasKeyReleased(KEY_OPEN_DOOR);
         boolean shoot = keyboard.hasKeyPressed(KEY_SHOOT);
         
-        //check all inputs
+        //check all input changes
         manageKeyboard(keyboard);
         
-        //set the weapon
+        //set the weapon the user selected
         if (selectWeapon1)
         {
             if (hero.getSpriteSheet().hasFinished() || !hero.getSpriteSheet().hasStarted())
@@ -126,54 +134,72 @@ public final class Input extends Sprite
         }
         else
         {
-            //player wants to shoot
-            if (shoot)
+            //player wants to shoot, they also can't open the door at the same time
+            if (shoot && !openDoor)
             {
                 //if shooting can't run
                 run = false;
                 
-                //if the current animation has finished or not started yet, then we can shoot
-                if (hero.getSpriteSheet().hasFinished() || !hero.getSpriteSheet().hasStarted())
+                //manage the gun fire, and return true if a bullet was fired
+                final boolean result = checkShoot(hero, resources);
+                
+                //bullet was fired, so animate the velocity of the bullet and see what we hit
+                if (result)
                 {
-                    //if a bullet was fired
-                    if (hero.getWeapons().shoot())
+                    //the bullet will start here
+                    double startX = getX();
+                    double startZ = getZ();
+                    
+                    //calculate the direction the bullet is headed in
+                    final double velocityX = Math.sin(getRotation());
+                    final double velocityZ = Math.cos(getRotation());
+                    
+                    //limit the number of bullet updates for performance reasons
+                    int limit = (16 * Render3D.RENDER_RANGE);
+                    
+                    //the number of updates is less if the knife is equipped
+                    if (hero.getWeapons().getType() == Weapons.Type.Knife)
+                        limit = (16 * 1);
+                    
+                    //keep track of updates
+                    int bulletUpdates = -1;
+                    
+                    //now loop the bullet until it hits something
+                    while(bulletUpdates < limit)
                     {
-                        //flag change
-                        hero.flagChange();
+                        //move bullet
+                        startX += velocityX;
+                        startZ += velocityZ;
                         
-                        //set the appropriate sprite sheet
-                        hero.getSpriteSheet().setCurrent(hero.getWeapons().getType());
-
-                        //don't pause animation
-                        hero.getSpriteSheet().setPause(false);
-
-                        if (!play)
+                        //determine what block we are in
+                        double newX = (startX / 16);
+                        double newZ = (startZ / 16);
+                        
+                        //if we hit an enemy exit loop
+                        if (enemies.checkHit(newX, newZ, hero.getWeapons().getDamage(), resources))
+                            break;
+                        
+                        //get the current block
+                        Block block = level.getBlock(newX, newZ);
+                        
+                        //make sure block exists
+                        if (block != null)
                         {
-                            play = true;
-                            
-                            switch (hero.getWeapons().getType())
+                            //if solid block
+                            if (block.isSolid())
                             {
-                                case Knife:
-                                    //play sound effect
-                                    resources.playGameAudio(GameAudio.Keys.Knife, true);
-                                    break;
-
-                                case Pistol:
-                                    //play sound effect
-                                    resources.playGameAudio(GameAudio.Keys.PistolFire, true);
-                                    break;
-
-                                case AssaultRifle:
-                                    //play sound effect
-                                    resources.playGameAudio(GameAudio.Keys.AssaultRifleFire, true);
-                                    break;
-
-                                case MachineGun:
-                                    //play sound effect
-                                    resources.playGameAudio(GameAudio.Keys.MachinegunFire, true);
+                                //if not a door or a door but not open then we hit the wall and stop bullet
+                                if (!block.isDoor() || block.isDoor() && !block.getDoor().isOpen())
                                     break;
                             }
                         }
+                        else
+                        {
+                            //this should never happen
+                            throw new Exception("Block not found at (" + newX + ", " + newZ + ")");
+                        }
+                        
+                        bulletUpdates++;
                     }
                 }
             }
@@ -183,13 +209,7 @@ public final class Input extends Sprite
                 if (hero.getSpriteSheet().hasFinished() || !hero.getSpriteSheet().hasStarted())
                 {
                     //if not shooting stop audio
-                    resources.stopGameAudio(GameAudio.Keys.Knife);
-                    resources.stopGameAudio(GameAudio.Keys.PistolFire);
-                    resources.stopGameAudio(GameAudio.Keys.AssaultRifleFire);
-                    resources.stopGameAudio(GameAudio.Keys.MachinegunFire);
-                    
-                    //stop sound
-                    play = false;
+                    stopGunFire(resources);
                 }
             }
         }
@@ -202,6 +222,7 @@ public final class Input extends Sprite
                 //flag change
                 hero.flagChange();
                 
+                //set the spritesheet according to the current weapon
                 hero.getSpriteSheet().setCurrent(hero.getWeapons().getType());
             }
         }
@@ -296,11 +317,19 @@ public final class Input extends Sprite
         final double originalX = getX() / 16;
         final double originalZ = getZ() / 16;
         
-        //just check if x collision has occurred
-        final boolean xCollision = hasCollision(level, newX, originalZ);
+        //just check if x collision has occurred in the level
+        boolean xCollision = level.hasCollision(newX, originalZ);
 
-        //just check if z collision has occurred
-        final boolean zCollision = hasCollision(level, originalX, newZ);
+        //if there is no collision check for enemy collision
+        if (!xCollision)
+            xCollision = enemies.hasCollision(newX, originalZ);
+        
+        //just check if z collision has occurred in the level
+        boolean zCollision = level.hasCollision(originalX, newZ);
+        
+        //if there is no collision check for enemy collision
+        if (!zCollision)
+            zCollision = enemies.hasCollision(originalX, newZ);
         
         //if there is no collision here we can move to the new position
         if (!xCollision)
@@ -359,9 +388,9 @@ public final class Input extends Sprite
             rotationa *= 0.5;
         }
         
-        //check if the player opened a door
-        if (openDoor)
-            manageDoors(level, hero, resources, originalX, originalZ, openDoorRelease);
+        //check if the player opened a door, and is not shooting
+        if (openDoor && !shoot)
+            manageDoors(level, hero, resources, originalX, originalZ, openDoorRelease, enemies.hasBoss());
         
         //get the bonus item at the players current location
         BonusItem.Type type = level.getLevelObjects().getBonusItemCollisionType(originalX, originalZ);
@@ -369,6 +398,71 @@ public final class Input extends Sprite
         //a bonus item was found
         if (type != null)
             manageBonus(type, hero, resources);
+    }
+    
+    private void stopGunFire(final Resources resources)
+    {
+        //if not shooting stop audio
+        resources.stopGameAudio(GameAudio.Keys.Knife);
+        resources.stopGameAudio(GameAudio.Keys.PistolFire);
+        resources.stopGameAudio(GameAudio.Keys.AssaultRifleFire);
+        resources.stopGameAudio(GameAudio.Keys.MachinegunFire);
+
+        //stop sound
+        play = false;
+    }
+    
+    private boolean checkShoot(final Hero hero, final Resources resources)
+    {
+        //if the current animation has finished or not started yet, then we can shoot
+        if (hero.getSpriteSheet().hasFinished() || !hero.getSpriteSheet().hasStarted())
+        {
+            //if we have the bullets to fire, will also deduct 1 bullet
+            if (hero.getWeapons().shoot())
+            {
+                //flag change
+                hero.flagChange();
+
+                //set the appropriate sprite sheet
+                hero.getSpriteSheet().setCurrent(hero.getWeapons().getType());
+
+                //don't pause animation
+                hero.getSpriteSheet().setPause(false);
+
+                if (!play)
+                {
+                    play = true;
+
+                    switch (hero.getWeapons().getType())
+                    {
+                        case Knife:
+                            //play sound effect
+                            resources.playGameAudio(GameAudio.Keys.Knife, true);
+                            break;
+
+                        case Pistol:
+                            //play sound effect
+                            resources.playGameAudio(GameAudio.Keys.PistolFire, true);
+                            break;
+
+                        case AssaultRifle:
+                            //play sound effect
+                            resources.playGameAudio(GameAudio.Keys.AssaultRifleFire, true);
+                            break;
+
+                        case MachineGun:
+                            //play sound effect
+                            resources.playGameAudio(GameAudio.Keys.MachinegunFire, true);
+                            break;
+                    }
+                }
+                
+                //return true to indicate that a bullet was fired
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     private void manageKeyboard(final Keyboard keyboard)
@@ -464,11 +558,8 @@ public final class Input extends Sprite
         }
     }
     
-    private void manageDoors(final Level level, final Hero hero, final Resources resources, final double originalX, final double originalZ, final boolean openDoorRelease) throws Exception
+    private void manageDoors(final Level level, final Hero hero, final Resources resources, final double originalX, final double originalZ, final boolean openDoorRelease, final boolean hasBoss) throws Exception
     {
-        //temp block object
-        Block block;
-
         //check any blocks within this range
         final int distance = 2;
 
@@ -478,11 +569,15 @@ public final class Input extends Sprite
             for (int z = -distance; z <= distance; z++)
             {
                 //get the current block
-                block = level.getBlock(originalX + x, originalZ + z);
+                Block block = level.getBlock(originalX + x, originalZ + z);
 
                 //if this block is a door
                 if (block.isDoor())
                 {
+                    //if this block is part of goal room and we still have boss(es), we can't open
+                    if (block.isGoal() && hasBoss)
+                        continue;
+                
                     //if the door is locked
                     if (block.getDoor().isLocked())
                     {
@@ -493,7 +588,7 @@ public final class Input extends Sprite
                             hero.flagChange();
 
                             //remove 1 key from inventory
-                            hero.removeKey();
+                            //hero.removeKey();
 
                             //the door is no longer locked
                             block.getDoor().setLocked(false);
@@ -526,13 +621,16 @@ public final class Input extends Sprite
                             resources.playGameAudio(GameAudio.Keys.DoorOpen);
                         }
                     }
+                    
+                    //mark that we have visited this block (used to track how many secrets we found)
+                    block.markVisited();
 
                     //open the door
                     block.getDoor().open();
                 }
 
                 //if we have selected the goal and the level isn't complete yet
-                if (block.isGoal() && !level.isComplete())
+                if (block.isGoal() && !block.isDoor() && !level.isComplete())
                 {
                     //make sure player is inside the goal
                     if (level.insideGoal(getPlayerX(), getPlayerZ()))
@@ -667,157 +765,6 @@ public final class Input extends Sprite
         return this.row;
     }
     
-    /**
-     * Check for collision with walls and obstacles in a level
-     * @param level The level that contains the blocks
-     * @param xLoc x location where the player is
-     * @param zLoc z location where the player is
-     * @param openDoor Does the player want to open a door
-     * @return true if we hit a wall, false otherwise
-     */
-    private boolean hasCollision(final Level level, final double xLoc, final double zLoc)
-    {
-        try
-        {
-            //temp block object
-            Block block;
-
-            //the current new block the player will be in
-            Block current = level.getBlock(xLoc, zLoc);
-            
-            //if the current block is not a door
-            if (!current.isDoor())
-            {
-                //check for walls withing this distance
-                final double WALL_D = .950;
-
-                //west
-                block = level.getBlock(xLoc - WALL_D, zLoc);
-
-                if (hasCollision(block))
-                    return true;
-
-                //east
-                block = level.getBlock(xLoc + WALL_D, zLoc);
-
-                if (hasCollision(block))
-                    return true;
-
-                //north
-                block = level.getBlock(xLoc, zLoc - WALL_D);
-                
-                if (hasCollision(block))
-                    return true;
-
-                //south
-                block = level.getBlock(xLoc, zLoc + WALL_D);
-                
-                if (hasCollision(block))
-                    return true;
-
-                /**
-                 * now check the corners at a closer distance
-                 */
-
-                //north west
-                block = level.getBlock(xLoc - Render3D.CLIP, zLoc - Render3D.CLIP);
-                
-                if (hasCollision(block))
-                    return true;
-
-                //north east
-                block = level.getBlock(xLoc + Render3D.CLIP, zLoc - Render3D.CLIP);
-
-                if (hasCollision(block))
-                    return true;
-                
-                //south west
-                block = level.getBlock(xLoc - Render3D.CLIP, zLoc + Render3D.CLIP);
-
-                if (hasCollision(block))
-                    return true;
-                
-                //south east
-                block = level.getBlock(xLoc + Render3D.CLIP, zLoc + Render3D.CLIP);
-                
-                if (hasCollision(block))
-                    return true;
-            }
-            else
-            {
-                //if the door is open check walls next to door
-                if (current.getDoor().isOpen())
-                {
-                    //west
-                    block = level.getBlock(xLoc - Render3D.CLIP, zLoc);
-
-                    if (hasCollision(block))
-                        return true;
-
-                    //east
-                    block = level.getBlock(xLoc + Render3D.CLIP, zLoc);
-
-                    if (hasCollision(block))
-                        return true;
-
-                    //north
-                    block = level.getBlock(xLoc, zLoc - Render3D.CLIP);
-
-                    if (hasCollision(block))
-                        return true;
-
-                    //south
-                    block = level.getBlock(xLoc, zLoc + Render3D.CLIP);
-
-                    if (hasCollision(block))
-                        return true;
-                }
-                else
-                {
-                    //if door is not open we have collision
-                    return true;
-                }
-            }
-            
-            //check if any collisions with obstacles
-            if (level.getLevelObjects().hasObstacleCollision(xLoc, zLoc))
-                return true;
-        }
-        catch(Exception e)
-        {
-            //print the error
-            e.printStackTrace();
-        }
-        
-        //no collision
-        return false;
-    }
-    
-    /**
-     * Check the block status to determine if there is a collision
-     * @param block The block we want to check
-     * @return true will be returned for the following conditions.<br>
-     * 1. If the block is solid and isn't a door.<br>
-     * 2. If the block is solid and and is a door but the door isn't open.
-     */
-    private boolean hasCollision(final Block block)
-    {
-        //is this block solid
-        if (block.isSolid())
-        {
-            //if it is not a door we have collision
-            if (!block.isDoor())
-                return true;
-
-            //if it is a door but not fully open we have collision
-            if (!block.getDoor().isOpen())
-                return true;
-        }
-        
-        //no collision was detected
-        return false;
-    }
-
     private void setXS(final double xs)
     {
         this.xs = xs;
@@ -858,7 +805,7 @@ public final class Input extends Sprite
         return this.za;
     }
     
-    private void setRotation(final double rotation)
+    protected void setRotation(final double rotation)
     {
         this.rotation = rotation;
     }
