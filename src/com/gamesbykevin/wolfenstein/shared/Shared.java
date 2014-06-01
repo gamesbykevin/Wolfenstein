@@ -24,7 +24,7 @@ public final class Shared
     public static final int ORIGINAL_HEIGHT = 400;
     
     //show UPS/FPS counters
-    public static final boolean DEBUG = true;
+    public static final boolean DEBUG = false;
     
     //do we hide mouse when the menu is not visible and actual gameplay has started
     public static boolean HIDE_MOUSE = true;

@@ -567,9 +567,16 @@ public final class Enemies implements Disposable
             startX += velocityX;
             startZ += velocityZ;
             
-            //exit loop, we hit a solid block
-            if (level.getBlock(startX, startZ).isSolid())
-                break;
+            //if there is a solid block we don't have vision
+            for (int x = -1; x < 2; x++)
+            {
+                for (int y = -1; y < 2; y++)
+                {
+                    //we don't have vision if we hit a solid block
+                    if (level.getBlock(startX + x, startZ + y).isSolid())
+                        return false;
+                }
+            }
             
             //if there is no solid block, check if can see human
             for (int x = -1; x < 2; x++)
